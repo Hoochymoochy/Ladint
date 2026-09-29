@@ -30,7 +30,6 @@ import {
   Loader2,
   Award,
   Send,
-  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getDictionary, type Locale } from "@/lib/i18n";
@@ -58,80 +57,21 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
     document.documentElement.lang = t.htmlLang;
   }, [t.htmlLang]);
 
-  // Hero Video Control (full-viewport intro, freeze at 7s)
-  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const heroRef = useRef<HTMLElement | null>(null);
-  const [isFrozen, setIsFrozen] = useState(false);
-  const [heroRevealed, setHeroRevealed] = useState(false);
+  const [showNav, setShowNav] = useState(false);
 
   useEffect(() => {
-    const video = heroVideoRef.current;
-    if (!video) return;
+    const hero = heroRef.current;
+    if (!hero) return;
 
-    video.muted = true;
-    video.play().catch(() => {});
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowNav(!entry.isIntersecting),
+      { threshold: 0 }
+    );
 
-    let animId: number;
-
-    const freeze = () => {
-      video.pause();
-      video.currentTime = 7;
-      setIsFrozen(true);
-      setHeroRevealed(true);
-    };
-
-    const checkTime = () => {
-      if (video.currentTime >= 7) {
-        freeze();
-        return;
-      }
-      animId = requestAnimationFrame(checkTime);
-    };
-
-    const handlePlay = () => {
-      setIsFrozen(false);
-      setHeroRevealed(false);
-      cancelAnimationFrame(animId);
-      animId = requestAnimationFrame(checkTime);
-    };
-
-    const handleEnded = () => freeze();
-
-    video.addEventListener("play", handlePlay);
-    video.addEventListener("ended", handleEnded);
-
-    if (!video.paused) {
-      handlePlay();
-    }
-
-    return () => {
-      cancelAnimationFrame(animId);
-      video.removeEventListener("play", handlePlay);
-      video.removeEventListener("ended", handleEnded);
-    };
+    observer.observe(hero);
+    return () => observer.disconnect();
   }, []);
-
-  const handleTimeUpdate = () => {
-    if (heroVideoRef.current && heroVideoRef.current.currentTime >= 7) {
-      heroVideoRef.current.pause();
-      heroVideoRef.current.currentTime = 7;
-      setIsFrozen(true);
-      setHeroRevealed(true);
-    }
-  };
-
-  const handleReplay = () => {
-    if (heroVideoRef.current) {
-      setHeroRevealed(false);
-      setIsFrozen(false);
-      heroVideoRef.current.currentTime = 0;
-      heroVideoRef.current.play().catch(() => {});
-    }
-  };
-
-  const scrollPastHero = () => {
-    missionRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
 
   // Newsletter Subscription Form state
   const [subEmail, setSubEmail] = useState("");
@@ -251,10 +191,20 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
 
   const councilMembers = t.councilMembers;
 
+  const scrollPastHero = () => {
+    missionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#f7fbfe] to-[#edf6fc] text-slate-800">
       {/* Top Navigation Bar */}
-      <nav className="fixed top-0 inset-x-0 z-50 transition-all duration-500 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
+      <nav
+        className={`fixed top-0 inset-x-0 z-50 border-b border-slate-200/50 bg-white/75 backdrop-blur-md transition-all duration-300 ${
+          showNav
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-full opacity-0 pointer-events-none"
+        }`}
+      >
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div
             className="flex items-center space-x-3 cursor-pointer"
@@ -341,72 +291,50 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         </div>
       </nav>
 
-      {/* Full-viewport logo film */}
+      {/* Hero — brand first */}
       <section
         ref={heroRef}
-        className="relative h-[100dvh] w-full overflow-hidden bg-black"
+        className="relative isolate flex min-h-[100dvh] w-full items-center overflow-hidden"
       >
-        <video
-          ref={heroVideoRef}
-          src="/gemini_generated_video_83ea9187.mp4"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          className="hero-logo-video absolute left-1/2 top-1/2 max-w-none cursor-pointer"
-          onClick={handleReplay}
-          onTimeUpdate={handleTimeUpdate}
-        />
+        {/* Full-bleed atmosphere */}
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(120%_80%_at_50%_-10%,#dff6ff_0%,#f4faff_42%,#e8f4fc_100%)]" />
+        <div className="hero-grid absolute inset-0 -z-10 opacity-[0.35]" />
+        <div className="hero-orb hero-orb-a absolute -z-10" />
+        <div className="hero-orb hero-orb-b absolute -z-10" />
 
-        {/* Soft veil so type reads once the logo holds */}
-        <div
-          className={`pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 transition-opacity duration-1000 ${
-            heroRevealed ? "opacity-100" : "opacity-0"
-          }`}
-        />
+        <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 py-16 text-center sm:px-10 sm:py-20">
+          <img
+            src="/logo.png"
+            alt="LADINT"
+            className="hero-enter-logo mb-8 h-28 w-28 object-contain drop-shadow-xl sm:h-36 sm:w-36 md:h-44 md:w-44"
+          />
 
-        <div
-          className={`relative z-10 flex h-full flex-col justify-end px-6 pb-14 pt-24 sm:px-10 lg:px-16 transition-all duration-1000 ease-out ${
-            heroRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6 pointer-events-none"
-          }`}
-        >
-          <div className="mx-auto w-full max-w-4xl text-center space-y-5">
-            <p className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white drop-shadow-[0_8px_40px_rgba(6,182,212,0.35)]">
+          <h1 className="hero-enter-brand text-6xl font-extrabold tracking-tight text-slate-900 sm:text-7xl md:text-8xl lg:text-9xl">
+            <span className="bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-800 bg-clip-text text-transparent">
               {t.brandMark}
-            </p>
-            <p className="mx-auto max-w-2xl text-base sm:text-lg md:text-xl text-slate-200/95 leading-relaxed">
-              {siteSettings.tagline || t.defaultTagline}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-              <Button
-                onClick={() => setIsOpenForm(true)}
-                className="px-8 py-6 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 text-base sm:text-lg font-bold rounded-full shadow-xl transition-all duration-300 transform hover:scale-105"
-              >
-                {t.joinLeague}
-              </Button>
-              <Button
-                onClick={scrollPastHero}
-                variant="outline"
-                className="px-8 py-6 border-white/30 bg-white/5 hover:bg-white/15 text-white text-base sm:text-lg font-semibold rounded-full backdrop-blur-sm"
-              >
-                {t.exploreSite} <ChevronRight className="w-5 h-5 ml-1" />
-              </Button>
-            </div>
+            </span>
+          </h1>
+
+          <p className="hero-enter-copy mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl md:text-2xl">
+            {siteSettings.tagline || t.defaultTagline}
+          </p>
+
+          <div className="hero-enter-cta mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Button
+              onClick={() => setIsOpenForm(true)}
+              className="px-8 py-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-base sm:text-lg font-bold rounded-full shadow-lg transition-transform duration-300 hover:scale-[1.03]"
+            >
+              {t.joinLeague}
+            </Button>
+            <Button
+              onClick={scrollPastHero}
+              variant="outline"
+              className="px-8 py-6 border-slate-300 bg-white/70 hover:bg-white text-slate-700 text-base sm:text-lg font-semibold rounded-full"
+            >
+              {t.exploreSite} <ChevronRight className="ml-1 h-5 w-5" />
+            </Button>
           </div>
         </div>
-
-        {isFrozen && (
-          <button
-            type="button"
-            onClick={handleReplay}
-            className="absolute bottom-5 right-5 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md transition hover:bg-black/70"
-            title={t.replayTitle}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            {t.replayFrozen}
-          </button>
-        )}
       </section>
 
       {/* Mission & Goals */}
