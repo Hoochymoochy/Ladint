@@ -58,9 +58,11 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
     document.documentElement.lang = t.htmlLang;
   }, [t.htmlLang]);
 
-  // Hero Video Control (stop & freeze at 7 seconds)
+  // Hero Video Control (full-viewport intro, freeze at 7s)
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
+  const heroRef = useRef<HTMLElement | null>(null);
   const [isFrozen, setIsFrozen] = useState(false);
+  const [heroRevealed, setHeroRevealed] = useState(false);
 
   useEffect(() => {
     const video = heroVideoRef.current;
@@ -71,11 +73,16 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
 
     let animId: number;
 
+    const freeze = () => {
+      video.pause();
+      video.currentTime = 7;
+      setIsFrozen(true);
+      setHeroRevealed(true);
+    };
+
     const checkTime = () => {
       if (video.currentTime >= 7) {
-        video.pause();
-        video.currentTime = 7;
-        setIsFrozen(true);
+        freeze();
         return;
       }
       animId = requestAnimationFrame(checkTime);
@@ -83,15 +90,12 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
 
     const handlePlay = () => {
       setIsFrozen(false);
+      setHeroRevealed(false);
       cancelAnimationFrame(animId);
       animId = requestAnimationFrame(checkTime);
     };
 
-    const handleEnded = () => {
-      video.pause();
-      video.currentTime = 7;
-      setIsFrozen(true);
-    };
+    const handleEnded = () => freeze();
 
     video.addEventListener("play", handlePlay);
     video.addEventListener("ended", handleEnded);
@@ -112,15 +116,21 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
       heroVideoRef.current.pause();
       heroVideoRef.current.currentTime = 7;
       setIsFrozen(true);
+      setHeroRevealed(true);
     }
   };
 
   const handleReplay = () => {
     if (heroVideoRef.current) {
+      setHeroRevealed(false);
+      setIsFrozen(false);
       heroVideoRef.current.currentTime = 0;
       heroVideoRef.current.play().catch(() => {});
-      setIsFrozen(false);
     }
+  };
+
+  const scrollPastHero = () => {
+    missionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   // Newsletter Subscription Form state
@@ -244,9 +254,12 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#f7fbfe] to-[#edf6fc] text-slate-800">
       {/* Top Navigation Bar */}
-      <nav className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm transition-all">
+      <nav className="fixed top-0 inset-x-0 z-50 transition-all duration-500 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <div
+            className="flex items-center space-x-3 cursor-pointer"
+            onClick={() => heroRef.current?.scrollIntoView({ behavior: "smooth" })}
+          >
             <img src="/logo.png" alt="LADINT Logo" className="w-10 h-10 object-contain drop-shadow" />
             <div>
               <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
@@ -328,103 +341,76 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative py-16 lg:py-24 flex items-center overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(45rem_50rem_at_top,theme(colors.cyan.100),white)] opacity-60" />
-        <div className="container mx-auto px-4 flex flex-col items-center text-center space-y-6 max-w-4xl">
-          {/* Hero Video (gemini_generated_video_83ea9187.mp4) - Stops & Freezes at 7 Seconds */}
-          <div className="relative group mx-auto my-2 w-full max-w-sm sm:max-w-md md:max-w-lg flex flex-col items-center">
-            <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl border-2 border-cyan-200/90 bg-white/80 backdrop-blur-md transition-all duration-500 hover:shadow-cyan-200/70">
-              <video
-                ref={heroVideoRef}
-                src="/gemini_generated_video_83ea9187.mp4"
-                poster="/logo.png"
-                autoPlay
-                muted
-                playsInline
-                preload="auto"
-                className="w-full h-full object-contain cursor-pointer transition-transform duration-300 group-hover:scale-[1.02]"
-                onClick={handleReplay}
-                onTimeUpdate={handleTimeUpdate}
-              />
+      {/* Full-viewport logo film */}
+      <section
+        ref={heroRef}
+        className="relative h-[100dvh] w-full overflow-hidden bg-black"
+      >
+        <video
+          ref={heroVideoRef}
+          src="/gemini_generated_video_83ea9187.mp4"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          disablePictureInPicture
+          className="hero-logo-video absolute left-1/2 top-1/2 max-w-none cursor-pointer"
+          onClick={handleReplay}
+          onTimeUpdate={handleTimeUpdate}
+        />
 
-              {/* Status and Replay Overlay */}
-              <div className="absolute bottom-3 right-3 flex items-center space-x-2 transition-all duration-300">
-                <button
-                  type="button"
-                  onClick={handleReplay}
-                  className="px-3.5 py-1.5 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white text-xs font-semibold rounded-full flex items-center space-x-1.5 shadow-lg transition transform hover:scale-105 active:scale-95"
-                  title={t.replayTitle}
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>{isFrozen ? t.replayFrozen : t.replayLive}</span>
-                </button>
-              </div>
+        {/* Soft veil so type reads once the logo holds */}
+        <div
+          className={`pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 transition-opacity duration-1000 ${
+            heroRevealed ? "opacity-100" : "opacity-0"
+          }`}
+        />
 
-              {isFrozen && (
-                <div className="absolute top-3 right-3">
-                  <span className="px-2.5 py-1 bg-cyan-600/90 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow">
-                    LADINT
-                  </span>
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-2.5 font-medium flex items-center space-x-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
-              <span>{t.animationCaption}</span>
-              <span className="text-slate-300">&bull;</span>
-              <span>{t.animationPause}</span>
+        <div
+          className={`relative z-10 flex h-full flex-col justify-end px-6 pb-14 pt-24 sm:px-10 lg:px-16 transition-all duration-1000 ease-out ${
+            heroRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6 pointer-events-none"
+          }`}
+        >
+          <div className="mx-auto w-full max-w-4xl text-center space-y-5">
+            <p className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white drop-shadow-[0_8px_40px_rgba(6,182,212,0.35)]">
+              {t.brandMark}
             </p>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            {siteSettings.clubName || t.defaultClubName}
-          </h1>
-
-          <p className="text-lg md:text-2xl text-slate-600 max-w-2xl leading-relaxed">
-            {siteSettings.tagline || t.defaultTagline}
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <Button
-              onClick={() => setIsOpenForm(true)}
-              className="px-8 py-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-lg font-bold rounded-full shadow-xl transition-all duration-300 transform hover:scale-105"
-            >
-              {t.joinLeague}
-            </Button>
-            <Button
-              onClick={() => newsletterRef.current?.scrollIntoView({ behavior: "smooth" })}
-              variant="outline"
-              className="px-8 py-6 border-slate-300 bg-white/80 hover:bg-slate-50 text-slate-700 text-lg font-semibold rounded-full shadow-sm"
-            >
-              {t.subscribeNewsletter} <ChevronRight className="w-5 h-5 ml-1" />
-            </Button>
-          </div>
-
-          {/* Quick Highlight Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 w-full max-w-3xl">
-            <div className="p-4 bg-white/70 backdrop-blur rounded-2xl shadow-sm border border-slate-200/60">
-              <span className="text-3xl font-extrabold text-cyan-600">{articles.length || "3"}+</span>
-              <p className="text-xs text-slate-500 font-medium mt-1">{t.statArticles}</p>
-            </div>
-            <div className="p-4 bg-white/70 backdrop-blur rounded-2xl shadow-sm border border-slate-200/60">
-              <span className="text-3xl font-extrabold text-blue-600">{events.length || "3"}+</span>
-              <p className="text-xs text-slate-500 font-medium mt-1">{t.statEvents}</p>
-            </div>
-            <div className="p-4 bg-white/70 backdrop-blur rounded-2xl shadow-sm border border-slate-200/60">
-              <span className="text-3xl font-extrabold text-amber-500">Moot</span>
-              <p className="text-xs text-slate-500 font-medium mt-1">{t.statMoot}</p>
-            </div>
-            <div className="p-4 bg-white/70 backdrop-blur rounded-2xl shadow-sm border border-slate-200/60">
-              <span className="text-3xl font-extrabold text-emerald-600">ONU</span>
-              <p className="text-xs text-slate-500 font-medium mt-1">{t.statUn}</p>
+            <p className="mx-auto max-w-2xl text-base sm:text-lg md:text-xl text-slate-200/95 leading-relaxed">
+              {siteSettings.tagline || t.defaultTagline}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Button
+                onClick={() => setIsOpenForm(true)}
+                className="px-8 py-6 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 text-base sm:text-lg font-bold rounded-full shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                {t.joinLeague}
+              </Button>
+              <Button
+                onClick={scrollPastHero}
+                variant="outline"
+                className="px-8 py-6 border-white/30 bg-white/5 hover:bg-white/15 text-white text-base sm:text-lg font-semibold rounded-full backdrop-blur-sm"
+              >
+                {t.exploreSite} <ChevronRight className="w-5 h-5 ml-1" />
+              </Button>
             </div>
           </div>
         </div>
+
+        {isFrozen && (
+          <button
+            type="button"
+            onClick={handleReplay}
+            className="absolute bottom-5 right-5 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md transition hover:bg-black/70"
+            title={t.replayTitle}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            {t.replayFrozen}
+          </button>
+        )}
       </section>
 
       {/* Mission & Goals */}
-      <section ref={missionRef} className="container mx-auto px-4 py-16 max-w-5xl">
+      <section ref={missionRef} className="container mx-auto px-4 py-16 max-w-5xl scroll-mt-20">
         <div className="text-center mb-12">
           <Badge className="bg-cyan-100 text-cyan-800 border-0 mb-2">{t.foundationsBadge}</Badge>
           <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.missionTitle}</h2>
