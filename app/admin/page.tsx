@@ -60,6 +60,7 @@ export default function AdminPage() {
     instagram: "@ladint.oficial",
     linkedin: "linkedin.com/company/ladint",
     foundationYear: "2024",
+    acceptingMembers: false,
   });
 
   // Modal form states
@@ -1285,6 +1286,28 @@ export default function AdminPage() {
                         onChange={(e) => setSiteSettings({ ...siteSettings, linkedin: e.target.value })}
                       />
                     </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 space-y-2">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                        checked={!!siteSettings.acceptingMembers}
+                        onChange={(e) =>
+                          setSiteSettings({ ...siteSettings, acceptingMembers: e.target.checked })
+                        }
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-slate-800">
+                          Aceitando novos membros
+                        </span>
+                        <span className="block text-xs text-slate-500 mt-0.5">
+                          Quando ativo, o botão de candidatura aparece no site. Quando desativado, o
+                          público vê o aviso de inscrição fechada e o convite para a newsletter.
+                        </span>
+                      </span>
+                    </label>
                   </div>
 
                   <div className="pt-4 flex justify-end">

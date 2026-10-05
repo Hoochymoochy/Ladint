@@ -12,95 +12,318 @@ export function getDictionary(locale: Locale) {
   return dictionaries[locale] ?? dictionaries.pt;
 }
 
-const councilPt = [
-  {
-    name: "Mila Antunes",
-    role: "Presidente",
-    image: "/Mila-Antunes.jpg",
-    bio: "Pesquisadora em Direito Internacional dos Direitos Humanos e Jurisdição Interamericana.",
-  },
-  {
-    name: "Letícia Belo",
-    role: "Vice Presidente",
-    image: "/Leticia-Belo.jpg",
-    bio: "Focada em Direito Internacional Humanitário, cortes penais e arbitragem transnacional.",
-  },
-  {
-    name: "Julia Bordalo",
-    role: "Diretoria de Comunicação",
-    image: "/Julia-Bordalo.jpg",
-    bio: "Coordena a divulgação científica, publicações do boletim e comunicação institucional.",
-  },
-  {
-    name: "Akio José",
-    role: "Diretoria de Eventos",
-    image: "/Akio-Jose.jpg",
-    bio: "Líder na organização de simulações da ONU, moot courts e palestras magnas.",
-  },
-  {
-    name: "Brenno Fonseca",
-    role: "Secretaria Geral",
-    image: "/Brenno-Fonseca.jpg",
-    bio: "Responsável pela articulação acadêmica, parcerias institucionais e registro documental.",
-  },
-  {
-    name: "Giovana Duailibe",
-    role: "Diretoria Científica",
-    image: "/Giovana-Duailibe.jpg",
-    bio: "Coordena linhas de pesquisa em governança ambiental e litígios climáticos globais.",
-  },
-  {
-    name: "Ana Júlia Braga",
-    role: "Conselho Consultivo",
-    image: "/Ana-Julia-Braga.jpg",
-    bio: "Atuação no apoio estratégico acadêmico e mentoria em competições internacionais.",
-  },
-] as const;
+export type DepartmentKey = "advisory" | "executive" | "academic" | "events" | "marketing";
 
-const councilEn = [
+export interface CouncilMember {
+  name: string;
+  role: string;
+  departmentKey: DepartmentKey;
+  department: string;
+  image: string;
+  bio: string;
+}
+
+export interface CouncilDepartment {
+  key: DepartmentKey;
+  name: string;
+  description: string;
+}
+
+const departmentsPt: readonly CouncilDepartment[] = [
   {
-    name: "Mila Antunes",
-    role: "President",
-    image: "/Mila-Antunes.jpg",
-    bio: "Researcher in International Human Rights Law and Inter-American Jurisdiction.",
+    key: "advisory",
+    name: "Orientação",
+    description: "Orientação científica da liga.",
   },
+  {
+    key: "executive",
+    name: "Presidência",
+    description: "Liderança e representação institucional.",
+  },
+  {
+    key: "academic",
+    name: "Acadêmica",
+    description: "Grupos de estudo e produção científica.",
+  },
+  {
+    key: "events",
+    name: "Eventos",
+    description: "Simpósios, palestras e moot courts.",
+  },
+  {
+    key: "marketing",
+    name: "Marketing",
+    description: "Comunicação e divulgação.",
+  },
+];
+
+const departmentsEn: readonly CouncilDepartment[] = [
+  {
+    key: "advisory",
+    name: "Advisory",
+    description: "Faculty guidance for the league.",
+  },
+  {
+    key: "executive",
+    name: "Executive",
+    description: "Leadership and institutional direction.",
+  },
+  {
+    key: "academic",
+    name: "Academic",
+    description: "Study groups and research output.",
+  },
+  {
+    key: "events",
+    name: "Events",
+    description: "Lectures, symposia, and moot courts.",
+  },
+  {
+    key: "marketing",
+    name: "Marketing",
+    description: "Communication and outreach.",
+  },
+];
+
+const councilPt: readonly CouncilMember[] = [
+  // Orientação Docente
+  {
+    name: "Prof. Thiago Viana",
+    role: "Orientador",
+    departmentKey: "advisory",
+    department: "Orientação Docente",
+    image: "/profiles/Thiago-Viana.jpeg",
+    bio: "Docente orientador dedicado ao fomento da pesquisa científica e excelência acadêmica na LADINT.",
+  },
+  {
+    name: "Prof. Glaucia Maranhão",
+    role: "Orientadora",
+    departmentKey: "advisory",
+    department: "Orientação Docente",
+    image: "/profiles/Glaucia-Maranhao.jpeg",
+    bio: "Docente orientadora com foco no desenvolvimento teórico e interdisciplinar em Direito Internacional.",
+  },
+  {
+    name: "Prof. Izabela Trajano",
+    role: "Orientadora",
+    departmentKey: "advisory",
+    department: "Orientação Docente",
+    image: "/profiles/Izabela-Trajano.jpeg",
+    bio: "Docente orientadora apoiando a formação crítica e internacionalista dos membros da liga.",
+  },
+  // Presidência & Secretaria
   {
     name: "Letícia Belo",
-    role: "Vice President",
-    image: "/Leticia-Belo.jpg",
-    bio: "Focused on International Humanitarian Law, criminal courts, and transnational arbitration.",
+    role: "Presidente",
+    departmentKey: "executive",
+    department: "Presidência & Secretaria",
+    image: "/profiles/Leticia-Belo.jpg",
+    bio: "Liderança institucional, representação geral e coordenação estratégica da liga acadêmica.",
   },
   {
-    name: "Julia Bordalo",
-    role: "Communications Director",
-    image: "/Julia-Bordalo.jpg",
-    bio: "Coordinates scientific outreach, newsletter publications, and institutional communication.",
-  },
-  {
-    name: "Akio José",
-    role: "Events Director",
-    image: "/Akio-Jose.jpg",
-    bio: "Leads the organization of UN simulations, moot courts, and keynote lectures.",
-  },
-  {
-    name: "Brenno Fonseca",
-    role: "Secretary General",
-    image: "/Brenno-Fonseca.jpg",
-    bio: "Responsible for academic coordination, institutional partnerships, and documentary records.",
-  },
-  {
-    name: "Giovana Duailibe",
-    role: "Scientific Director",
-    image: "/Giovana-Duailibe.jpg",
-    bio: "Coordinates research lines in environmental governance and global climate litigation.",
+    name: "Júlia Bordalo",
+    role: "Vice Presidente",
+    departmentKey: "executive",
+    department: "Presidência & Secretaria",
+    image: "/profiles/Julia-Bordalo.jpeg",
+    bio: "Vice-liderança institucional e supervisão direta das frentes e diretorias da liga.",
   },
   {
     name: "Ana Júlia Braga",
-    role: "Advisory Council",
-    image: "/Ana-Julia-Braga.jpg",
-    bio: "Provides strategic academic support and mentoring in international competitions.",
+    role: "Secretária Geral",
+    departmentKey: "executive",
+    department: "Presidência & Secretaria",
+    image: "/profiles/Ana-Julia-Braga.jpeg",
+    bio: "Gestão documental, articulação administrativa e apoio executivo aos membros.",
   },
-] as const;
+  // Diretoria Acadêmica
+  {
+    name: "Geovanna Costa",
+    role: "Diretoria Acadêmica",
+    departmentKey: "academic",
+    department: "Diretoria Acadêmica",
+    image: "/profiles/Geovanna-Costa.jpeg",
+    bio: "Coordenação de grupos de estudos, produções científicas e publicação de artigos jurídicos.",
+  },
+  {
+    name: "Giovanna Duarte",
+    role: "Diretoria Acadêmica",
+    departmentKey: "academic",
+    department: "Diretoria Acadêmica",
+    image: "/profiles/Giovanna-Duarte.jpeg",
+    bio: "Coordenação de grupos de estudos, produções científicas e publicação de artigos jurídicos.",
+  },
+  {
+    name: "Driele Jansen",
+    role: "Diretoria Acadêmica",
+    departmentKey: "academic",
+    department: "Diretoria Acadêmica",
+    image: "/profiles/Driele-Jansen.jpeg",
+    bio: "Coordenação de grupos de estudos, produções científicas e publicação de artigos jurídicos.",
+  },
+  // Diretoria de Eventos
+  {
+    name: "Enny Lacerda",
+    role: "Diretoria de Eventos",
+    departmentKey: "events",
+    department: "Diretoria de Eventos",
+    image: "/profiles/Enny-Lacerda.jpeg",
+    bio: "Organização de palestras magnas, simpósios e coordenação de delegações em moot courts.",
+  },
+  {
+    name: "Julia Ashley",
+    role: "Diretoria de Eventos",
+    departmentKey: "events",
+    department: "Diretoria de Eventos",
+    image: "/profiles/Julia-Ashley.jpeg",
+    bio: "Organização de palestras magnas, simpósios e coordenação de delegações em moot courts.",
+  },
+  // Diretoria de Marketing
+  {
+    name: "Eduardo Soares",
+    role: "Diretoria de Marketing",
+    departmentKey: "marketing",
+    department: "Diretoria de Marketing",
+    image: "/profiles/Eduardo-Soares.jpeg",
+    bio: "Criação visual, estratégias de divulgação e posicionamento nas plataformas digitais da liga.",
+  },
+  {
+    name: "Letícia Brito",
+    role: "Diretoria de Marketing",
+    departmentKey: "marketing",
+    department: "Diretoria de Marketing",
+    image: "/profiles/Leticia-Brito.jpeg",
+    bio: "Criação visual, estratégias de divulgação e posicionamento nas plataformas digitais da liga.",
+  },
+  {
+    name: "Waldirlan Segundo",
+    role: "Diretoria de Marketing",
+    departmentKey: "marketing",
+    department: "Diretoria de Marketing",
+    image: "/profiles/Waldirlan-Segundo.jpeg",
+    bio: "Criação visual, estratégias de divulgação e posicionamento nas plataformas digitais da liga.",
+  },
+];
+
+const councilEn: readonly CouncilMember[] = [
+  // Faculty Advisory
+  {
+    name: "Prof. Thiago Viana",
+    role: "Faculty Advisor",
+    departmentKey: "advisory",
+    department: "Faculty Advisory",
+    image: "/profiles/Thiago-Viana.jpeg",
+    bio: "Faculty advisor dedicated to fostering scientific research and academic excellence at LADINT.",
+  },
+  {
+    name: "Prof. Glaucia Maranhão",
+    role: "Faculty Advisor",
+    departmentKey: "advisory",
+    department: "Faculty Advisory",
+    image: "/profiles/Glaucia-Maranhao.jpeg",
+    bio: "Faculty advisor focused on theoretical and interdisciplinary international law scholarship.",
+  },
+  {
+    name: "Prof. Izabela Trajano",
+    role: "Faculty Advisor",
+    departmentKey: "advisory",
+    department: "Faculty Advisory",
+    image: "/profiles/Izabela-Trajano.jpeg",
+    bio: "Faculty advisor supporting critical and international legal education for league members.",
+  },
+  // Executive Board
+  {
+    name: "Letícia Belo",
+    role: "President",
+    departmentKey: "executive",
+    department: "Executive Board",
+    image: "/profiles/Leticia-Belo.jpg",
+    bio: "Institutional leadership, overall representation, and strategic direction of the academic league.",
+  },
+  {
+    name: "Júlia Bordalo",
+    role: "Vice President",
+    departmentKey: "executive",
+    department: "Executive Board",
+    image: "/profiles/Julia-Bordalo.jpeg",
+    bio: "Vice-leadership and strategic coordination across all league directorships.",
+  },
+  {
+    name: "Ana Júlia Braga",
+    role: "Secretary General",
+    departmentKey: "executive",
+    department: "Executive Board",
+    image: "/profiles/Ana-Julia-Braga.jpeg",
+    bio: "Document management, administrative coordination, and executive support for members.",
+  },
+  // Academic Board
+  {
+    name: "Geovanna Costa",
+    role: "Academic Director",
+    departmentKey: "academic",
+    department: "Academic Board",
+    image: "/profiles/Geovanna-Costa.jpeg",
+    bio: "Coordination of research groups, legal publications, and scientific output.",
+  },
+  {
+    name: "Giovanna Duarte",
+    role: "Academic Director",
+    departmentKey: "academic",
+    department: "Academic Board",
+    image: "/profiles/Giovanna-Duarte.jpeg",
+    bio: "Coordination of research groups, legal publications, and scientific output.",
+  },
+  {
+    name: "Driele Jansen",
+    role: "Academic Director",
+    departmentKey: "academic",
+    department: "Academic Board",
+    image: "/profiles/Driele-Jansen.jpeg",
+    bio: "Coordination of research groups, legal publications, and scientific output.",
+  },
+  // Events Board
+  {
+    name: "Enny Lacerda",
+    role: "Events Director",
+    departmentKey: "events",
+    department: "Events Board",
+    image: "/profiles/Enny-Lacerda.jpeg",
+    bio: "Planning and organizing keynote lectures, symposia, and moot court delegations.",
+  },
+  {
+    name: "Julia Ashley",
+    role: "Events Director",
+    departmentKey: "events",
+    department: "Events Board",
+    image: "/profiles/Julia-Ashley.jpeg",
+    bio: "Planning and organizing keynote lectures, symposia, and moot court delegations.",
+  },
+  // Marketing Board
+  {
+    name: "Eduardo Soares",
+    role: "Marketing Director",
+    departmentKey: "marketing",
+    department: "Marketing Board",
+    image: "/profiles/Eduardo-Soares.jpeg",
+    bio: "Visual design, promotional campaigns, and brand presence across digital platforms.",
+  },
+  {
+    name: "Letícia Brito",
+    role: "Marketing Director",
+    departmentKey: "marketing",
+    department: "Marketing Board",
+    image: "/profiles/Leticia-Brito.jpeg",
+    bio: "Visual design, promotional campaigns, and brand presence across digital platforms.",
+  },
+  {
+    name: "Waldirlan Segundo",
+    role: "Marketing Director",
+    departmentKey: "marketing",
+    department: "Marketing Board",
+    image: "/profiles/Waldirlan-Segundo.jpeg",
+    bio: "Visual design, promotional campaigns, and brand presence across digital platforms.",
+  },
+];
 
 export const dictionaries = {
   pt: {
@@ -143,6 +366,9 @@ export const dictionaries = {
     pillar2: "Conectar estudantes com diplomatas, magistrados e juristas de renome global.",
     pillar3: "Preparar e enviar equipes para simulações internacionais e Moot Courts prestigiados.",
     pillar4: "Incentivar a publicação científica em periódicos indexados e anais acadêmicos.",
+    articlesPath: "/artigos",
+    homePath: "/",
+    backHome: "Voltar ao início",
     academicBadge: "Produção Acadêmica",
     articlesTitle: "Artigos Científicos Publicados",
     articlesSubtitle:
@@ -172,13 +398,16 @@ export const dictionaries = {
     noIssues: "Nenhuma edição arquivada ainda.",
     readIssue: "Ler Edição Completa",
     leadershipBadge: "Liderança",
-    councilTitle: "Conheça o Conselho Diretor",
-    councilSubtitle:
-      "A equipe de acadêmicos à frente da gestão, dos grupos de estudos e das relações institucionais da liga.",
+    councilTitle: "Conselho Diretor",
+    councilSubtitle: "A equipe à frente da LADINT.",
     ctaTitle: "Faça Parte da Nossa História",
     ctaBody:
       "Seja você um estudante iniciante ou avançado, a LADINT oferece a plataforma ideal para desenvolver oratória, redação de memoriais, networking e publicação científica.",
     becomeMemberCta: "Torne-se um Membro",
+    ctaClosedTitle: "Inscrições temporariamente fechadas",
+    ctaClosedBody:
+      "Não estamos aceitando novos membros neste momento. Cadastre-se na newsletter para saber assim que as vagas reabrirem.",
+    ctaClosedAction: "Acompanhar pela Newsletter",
     footerRights: "Todos os direitos reservados.",
     contact: "Contato:",
     adminControl: "Painel de Controle (Admin)",
@@ -204,6 +433,9 @@ export const dictionaries = {
     awardLabel: "Destaque / Premiação:",
     aboutActuation: "Sobre a Atuação",
     invalidEmail: "Por favor, digite um e-mail válido.",
+    councilDepartments: departmentsPt,
+    allDepartmentsLabel: "Todos",
+    membersCountLabel: "membros",
     councilMembers: councilPt,
   },
   en: {
@@ -246,6 +478,9 @@ export const dictionaries = {
     pillar2: "Connect students with diplomats, judges, and renowned global jurists.",
     pillar3: "Prepare and send teams to prestigious international simulations and Moot Courts.",
     pillar4: "Encourage scientific publication in indexed journals and academic proceedings.",
+    articlesPath: "/en/articles",
+    homePath: "/en",
+    backHome: "Back to home",
     academicBadge: "Academic Output",
     articlesTitle: "Published Scientific Articles",
     articlesSubtitle:
@@ -275,13 +510,16 @@ export const dictionaries = {
     noIssues: "No archived editions yet.",
     readIssue: "Read Full Edition",
     leadershipBadge: "Leadership",
-    councilTitle: "Meet the Board of Directors",
-    councilSubtitle:
-      "The academic team leading management, study groups, and the league's institutional relations.",
+    councilTitle: "Board of Directors",
+    councilSubtitle: "The team leading LADINT.",
     ctaTitle: "Be Part of Our Story",
     ctaBody:
       "Whether you are a beginning or advanced student, LADINT offers the ideal platform to develop oratory, memorial drafting, networking, and scientific publication.",
     becomeMemberCta: "Become a Member",
+    ctaClosedTitle: "Applications temporarily closed",
+    ctaClosedBody:
+      "We are not accepting new members right now. Sign up for the newsletter to stay up to date when we open again.",
+    ctaClosedAction: "Stay Updated via Newsletter",
     footerRights: "All rights reserved.",
     contact: "Contact:",
     adminControl: "Control Panel (Admin)",
@@ -307,8 +545,12 @@ export const dictionaries = {
     awardLabel: "Highlight / Award:",
     aboutActuation: "About Our Participation",
     invalidEmail: "Please enter a valid email.",
+    councilDepartments: departmentsEn,
+    allDepartmentsLabel: "All",
+    membersCountLabel: "members",
     councilMembers: councilEn,
   },
 } as const;
 
 export type Dictionary = (typeof dictionaries)[Locale];
+

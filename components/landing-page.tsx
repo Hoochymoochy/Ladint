@@ -16,32 +16,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Shield,
-  Users,
-  Globe,
-  Scale,
-  BookOpen,
   Trophy,
   Mail,
   ExternalLink,
   ChevronRight,
   CheckCircle2,
-  Lock,
   Loader2,
   Award,
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getDictionary, type Locale } from "@/lib/i18n";
+import { getDictionary, type Locale, type DepartmentKey } from "@/lib/i18n";
 
 export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   const t = getDictionary(locale);
   const [isOpenForm, setIsOpenForm] = useState(false);
-  const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   // Dynamic Data from Neon Postgres
-  const [articles, setArticles] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [newsletters, setNewsletters] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>({
@@ -51,6 +43,7 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
     contactEmail: "ladint.contato@academico.br",
     instagram: "@ladint.oficial",
     linkedin: "linkedin.com/company/ladint",
+    acceptingMembers: false,
   });
 
   useEffect(() => {
@@ -61,16 +54,13 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   const [showNav, setShowNav] = useState(false);
 
   useEffect(() => {
-    const hero = heroRef.current;
-    if (!hero) return;
+    const updateNav = () => {
+      setShowNav(window.scrollY > 8);
+    };
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowNav(!entry.isIntersecting),
-      { threshold: 0 }
-    );
-
-    observer.observe(hero);
-    return () => observer.disconnect();
+    updateNav();
+    window.addEventListener("scroll", updateNav, { passive: true });
+    return () => window.removeEventListener("scroll", updateNav);
   }, []);
 
   // Newsletter Subscription Form state
@@ -87,10 +77,10 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
     motivation: "",
   });
   const [appLoading, setAppLoading] = useState(false);
+  const [activeDept, setActiveDept] = useState<DepartmentKey>("advisory");
 
   // Section Refs for smooth scrolling
   const missionRef = useRef<HTMLDivElement | null>(null);
-  const articlesRef = useRef<HTMLDivElement | null>(null);
   const eventsRef = useRef<HTMLDivElement | null>(null);
   const newsletterRef = useRef<HTMLDivElement | null>(null);
   const councilRef = useRef<HTMLDivElement | null>(null);
@@ -99,28 +89,24 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   useEffect(() => {
     async function loadData() {
       try {
-        const [artsRes, evsRes, newsRes, settingsRes] = await Promise.all([
-          fetch("/api/articles"),
+        const [evsRes, newsRes, settingsRes] = await Promise.all([
           fetch("/api/events"),
           fetch("/api/newsletter"),
           fetch("/api/settings?key=general"),
         ]);
 
-        const [artsData, evsData, newsData, settingsData] = await Promise.all([
-          artsRes.json(),
+        const [evsData, newsData, settingsData] = await Promise.all([
           evsRes.json(),
           newsRes.json(),
           settingsRes.json(),
         ]);
 
-        if (artsData.success && artsData.data) setArticles(artsData.data);
         if (evsData.success && evsData.data) setEvents(evsData.data);
         if (newsData.success && newsData.data) setNewsletters(newsData.data);
         if (settingsData.success && settingsData.data) {
           const data = settingsData.data;
           setSiteSettings({
             ...data,
-            // Keep English UI defaults for display name/tagline (CMS is Portuguese today)
             clubName: locale === "en" ? t.defaultClubName : data.clubName || t.defaultClubName,
             tagline: locale === "en" ? t.defaultTagline : data.tagline || t.defaultTagline,
           });
@@ -190,16 +176,31 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   };
 
   const councilMembers = t.councilMembers;
+  const acceptingMembers = !!siteSettings.acceptingMembers;
+  const activeDepartment = t.councilDepartments.find((d) => d.key === activeDept) ?? t.councilDepartments[0];
+  const visibleMembers = councilMembers.filter((m) => m.departmentKey === activeDept);
 
   const scrollPastHero = () => {
     missionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const scrollToNewsletter = () => {
+    newsletterRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#f7fbfe] to-[#edf6fc] text-slate-800">
+      {/* Soft mist dissolve as content nears the header (same feel as hero text fade) */}
+      <div
+        aria-hidden
+        className={`header-blur-veil pointer-events-none fixed inset-x-0 top-0 z-40 transition-opacity duration-500 ${
+          showNav ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
       {/* Top Navigation Bar */}
       <nav
-        className={`fixed top-0 inset-x-0 z-50 border-b border-slate-200/50 bg-white/75 backdrop-blur-md transition-all duration-300 ${
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
           showNav
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none"
@@ -225,23 +226,17 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
             >
               {t.navMission}
             </button>
-            <button
-              onClick={() => articlesRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-cyan-600 transition flex items-center"
-            >
+            <Link href={t.articlesPath} className="hover:text-cyan-600 transition">
               {t.navArticles}
-              {articles.length > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.2 bg-cyan-100 text-cyan-800 text-[10px] font-bold rounded-full">
-                  {articles.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => eventsRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-cyan-600 transition"
-            >
-              {t.navEvents}
-            </button>
+            </Link>
+            {events.length > 0 && (
+              <button
+                onClick={() => eventsRef.current?.scrollIntoView({ behavior: "smooth" })}
+                className="hover:text-cyan-600 transition"
+              >
+                {t.navEvents}
+              </button>
+            )}
             <button
               onClick={() => newsletterRef.current?.scrollIntoView({ behavior: "smooth" })}
               className="hover:text-cyan-600 transition"
@@ -275,18 +270,14 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
                 {t.langEn}
               </Link>
             </div>
-            <Button
-              onClick={() => setIsOpenForm(true)}
-              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-md text-xs sm:text-sm font-semibold rounded-full px-4 sm:px-5 py-2 transition transform hover:scale-105"
-            >
-              {t.becomeMember}
-            </Button>
-            <Link href="/admin">
-              <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:text-cyan-700 text-xs">
-                <Lock className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                {t.adminPanel}
+            {acceptingMembers && (
+              <Button
+                onClick={() => setIsOpenForm(true)}
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-md text-xs sm:text-sm font-semibold rounded-full px-4 sm:px-5 py-2 transition transform hover:scale-105"
+              >
+                {t.becomeMember}
               </Button>
-            </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -301,31 +292,35 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         <div className="hero-grid absolute inset-0 -z-10 opacity-[0.35]" />
         <div className="hero-orb hero-orb-a absolute -z-10" />
         <div className="hero-orb hero-orb-b absolute -z-10" />
+        <div className="hero-orb hero-orb-c absolute -z-10" />
+        <div className="hero-orb hero-orb-d absolute -z-10" />
 
-        <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 py-16 text-center sm:px-10 sm:py-20">
-          <img
-            src="/logo.png"
-            alt="LADINT"
-            className="hero-enter-logo mb-8 h-28 w-28 object-contain drop-shadow-xl sm:h-36 sm:w-36 md:h-44 md:w-44"
-          />
+        {/* Gradient blur — text arriving (top) and leaving (bottom) */}
+        <div className="hero-mist hero-mist-top pointer-events-none absolute inset-x-0 top-0 z-[1] h-[28%]" />
+        <div className="hero-mist hero-mist-bottom pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[32%]" />
 
-          <h1 className="hero-enter-brand text-6xl font-extrabold tracking-tight text-slate-900 sm:text-7xl md:text-8xl lg:text-9xl">
+        <div className="relative z-[2] mx-auto flex w-full max-w-4xl flex-col items-center px-4 py-10 text-center sm:px-8">
+          <div className="hero-text-glow pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[70%] w-[80%] -translate-x-1/2 -translate-y-1/2" />
+
+          <h1 className="hero-enter-brand text-5xl font-extrabold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
             <span className="bg-gradient-to-br from-cyan-600 via-sky-600 to-blue-800 bg-clip-text text-transparent">
               {t.brandMark}
             </span>
           </h1>
 
-          <p className="hero-enter-copy mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl md:text-2xl">
+          <p className="hero-enter-copy mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg md:text-xl">
             {siteSettings.tagline || t.defaultTagline}
           </p>
 
-          <div className="hero-enter-cta mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Button
-              onClick={() => setIsOpenForm(true)}
-              className="px-8 py-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-base sm:text-lg font-bold rounded-full shadow-lg transition-transform duration-300 hover:scale-[1.03]"
-            >
-              {t.joinLeague}
-            </Button>
+          <div className="hero-enter-cta mt-8 flex flex-wrap items-center justify-center gap-3">
+            {acceptingMembers ? (
+              <Button
+                onClick={() => setIsOpenForm(true)}
+                className="px-8 py-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-base sm:text-lg font-bold rounded-full shadow-lg transition-transform duration-300 hover:scale-[1.03]"
+              >
+                {t.joinLeague}
+              </Button>
+            ) : null}
             <Button
               onClick={scrollPastHero}
               variant="outline"
@@ -337,160 +332,42 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         </div>
       </section>
 
-      {/* Mission & Goals */}
-      <section ref={missionRef} className="container mx-auto px-4 py-16 max-w-5xl scroll-mt-20">
-        <div className="text-center mb-12">
-          <Badge className="bg-cyan-100 text-cyan-800 border-0 mb-2">{t.foundationsBadge}</Badge>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.missionTitle}</h2>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          <Card className="bg-white/90 backdrop-blur shadow-md border-0 rounded-2xl hover:shadow-xl transition-shadow duration-300">
-            <CardHeader>
-              <div className="w-12 h-12 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center mb-2">
-                <Globe className="w-6 h-6" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-slate-900">{t.ourMission}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-slate-600 leading-relaxed space-y-3">
+      {/* Mission + logo */}
+      <section ref={missionRef} className="container mx-auto max-w-6xl scroll-mt-20 px-4 py-20">
+        <div className="grid items-center gap-10 md:grid-cols-2 md:gap-14">
+          <div className="space-y-5 text-left">
+            <Badge className="bg-cyan-100 text-cyan-800 border-0">{t.foundationsBadge}</Badge>
+            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
+              {t.ourMission}
+            </h2>
+            <div className="space-y-4 text-base leading-relaxed text-slate-600 md:text-lg">
               <p>{t.missionP1}</p>
               <p>{t.missionP2}</p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-white/90 backdrop-blur shadow-md border-0 rounded-2xl hover:shadow-xl transition-shadow duration-300">
-            <CardHeader>
-              <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-2">
-                <Scale className="w-6 h-6" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-slate-900">{t.pillarsTitle}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-slate-700">
-              <div className="flex items-start space-x-3">
-                <Shield className="w-5 h-5 text-cyan-600 shrink-0 mt-0.5" />
-                <span className="text-sm">{t.pillar1}</span>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Users className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-                <span className="text-sm">{t.pillar2}</span>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Trophy className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                <span className="text-sm">{t.pillar3}</span>
-              </div>
-              <div className="flex items-start space-x-3">
-                <BookOpen className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <span className="text-sm">{t.pillar4}</span>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex justify-center md:justify-end">
+            <img
+              src="/assests/logo.png"
+              alt="LADINT"
+              className="h-auto w-full max-w-md object-contain drop-shadow-xl md:max-w-lg"
+            />
+          </div>
         </div>
       </section>
 
-      {/* SECTION: PUBLISHED SCIENTIFIC ARTICLES */}
-      <section ref={articlesRef} className="container mx-auto px-4 py-16 max-w-6xl">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-          <div>
-            <Badge className="bg-blue-100 text-blue-800 border-0 mb-2">{t.academicBadge}</Badge>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.articlesTitle}</h2>
-            <p className="text-slate-600 text-sm mt-1 max-w-xl">
-              {t.articlesSubtitle}
-            </p>
+      {events.length > 0 && (
+        <section ref={eventsRef} className="container mx-auto px-4 py-16 max-w-6xl">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+            <div>
+              <Badge className="bg-amber-100 text-amber-900 border-0 mb-2">{t.representBadge}</Badge>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.eventsTitle}</h2>
+              <p className="text-slate-600 text-sm mt-1 max-w-xl">
+                {t.eventsSubtitle}
+              </p>
+            </div>
           </div>
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="border-slate-300 text-slate-700">
-              {t.manageArticles}
-            </Button>
-          </Link>
-        </div>
 
-        {articles.length === 0 ? (
-          <div className="text-center py-12 bg-white/60 rounded-2xl border border-slate-200">
-            <BookOpen className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-            <p className="text-slate-500">{t.noArticles}</p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((art) => (
-              <Card
-                key={art.id}
-                className="bg-white/90 backdrop-blur border-slate-200/80 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col justify-between rounded-2xl hover:-translate-y-1"
-              >
-                <div>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                      <span className="font-semibold text-cyan-700 truncate max-w-[180px]">{art.journal}</span>
-                      <span>{new Date(art.publication_date).toLocaleDateString(t.dateLocale)}</span>
-                    </div>
-                    <CardTitle className="text-lg font-bold text-slate-900 leading-snug line-clamp-2 hover:text-cyan-700 transition">
-                      {art.title}
-                    </CardTitle>
-                    <CardDescription className="text-xs font-medium text-slate-600 mt-1">
-                      {t.byAuthors} {art.authors}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed">{art.abstract}</p>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {Array.isArray(art.tags) &&
-                        art.tags.slice(0, 3).map((tag: string, idx: number) => (
-                          <Badge key={idx} variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5">
-                            {tag}
-                          </Badge>
-                        ))}
-                    </div>
-                  </CardContent>
-                </div>
-
-                <div className="p-5 pt-0 flex items-center justify-between border-t border-slate-100 mt-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedArticle(art)}
-                    className="text-xs text-cyan-600 hover:text-cyan-800 p-0 font-semibold"
-                  >
-                    {t.readAbstract}
-                  </Button>
-                  {art.doi_or_url && (
-                    <a
-                      href={art.doi_or_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center text-xs font-semibold text-slate-700 hover:text-cyan-600 transition"
-                    >
-                      {t.access} <ExternalLink className="w-3.5 h-3.5 ml-1" />
-                    </a>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* SECTION: PARTICIPATION IN BIG EVENTS */}
-      <section ref={eventsRef} className="container mx-auto px-4 py-16 max-w-6xl">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-          <div>
-            <Badge className="bg-amber-100 text-amber-900 border-0 mb-2">{t.representBadge}</Badge>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.eventsTitle}</h2>
-            <p className="text-slate-600 text-sm mt-1 max-w-xl">
-              {t.eventsSubtitle}
-            </p>
-          </div>
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="border-slate-300 text-slate-700">
-              {t.manageEvents}
-            </Button>
-          </Link>
-        </div>
-
-        {events.length === 0 ? (
-          <div className="text-center py-12 bg-white/60 rounded-2xl border border-slate-200">
-            <Trophy className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-            <p className="text-slate-500">{t.noEvents}</p>
-          </div>
-        ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.map((ev) => (
               <Card
@@ -539,7 +416,102 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
               </Card>
             ))}
           </div>
-        )}
+        </section>
+      )}
+
+      {/* Council — full-screen section */}
+      <section
+        ref={councilRef}
+        className="relative flex min-h-[100dvh] w-full scroll-mt-0 items-center overflow-hidden"
+      >
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(90%_70%_at_50%_0%,#e8f6ff_0%,#f7fbfe_45%,#edf6fc_100%)]" />
+        <div className="hero-grid absolute inset-0 -z-10 opacity-[0.2]" />
+
+        <div className="container mx-auto w-full max-w-6xl px-4 py-24 md:py-28">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900">
+              {t.councilTitle}
+            </h2>
+            <p className="text-slate-600 text-base sm:text-lg md:text-xl mt-3 max-w-2xl mx-auto leading-relaxed">
+              {t.councilSubtitle}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {t.councilDepartments.map((dept) => (
+              <button
+                key={dept.key}
+                type="button"
+                onClick={() => setActiveDept(dept.key)}
+                className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${
+                  activeDept === dept.key
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md"
+                    : "bg-white/80 text-slate-600 border border-slate-200 hover:border-cyan-300 hover:text-cyan-700"
+                }`}
+              >
+                {dept.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="text-center mb-8 max-w-xl mx-auto">
+            <p className="text-sm text-slate-500 leading-relaxed">{activeDepartment.description}</p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-6">
+            {visibleMembers.map((member) => (
+              <Card
+                key={member.name}
+                className="w-full sm:w-[calc(50%-0.75rem)] md:w-[calc(33.333%-1rem)] lg:w-[calc(25%-1.125rem)] max-w-xs text-center bg-white/90 backdrop-blur shadow-md rounded-2xl hover:shadow-xl transition-all duration-300 border-slate-200/80 p-5 flex flex-col justify-between"
+              >
+                <div>
+                  <Avatar className="mx-auto w-24 h-24 ring-4 ring-cyan-100 shadow-md">
+                    <AvatarImage src={member.image} alt={member.name} className="object-cover" />
+                    <AvatarFallback className="bg-cyan-600 text-white font-bold text-lg">
+                      {member.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <CardTitle className="mt-4 text-base font-bold text-slate-900">{member.name}</CardTitle>
+                  <CardDescription className="text-xs text-cyan-700 font-semibold">{member.role}</CardDescription>
+                  <p className="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">{member.bio}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Membership CTA */}
+      <section className="container mx-auto px-4 py-20 flex flex-col items-center text-center max-w-3xl">
+        <div className="p-10 rounded-3xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-transparent border border-cyan-200/60 w-full space-y-6">
+          {acceptingMembers ? (
+            <>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.ctaTitle}</h2>
+              <p className="text-slate-600 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
+                {t.ctaBody}
+              </p>
+              <Button
+                onClick={() => setIsOpenForm(true)}
+                className="px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xl font-bold rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105"
+              >
+                {t.becomeMemberCta}
+              </Button>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.ctaClosedTitle}</h2>
+              <p className="text-slate-600 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
+                {t.ctaClosedBody}
+              </p>
+              <Button
+                onClick={scrollToNewsletter}
+                className="px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xl font-bold rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105"
+              >
+                {t.ctaClosedAction}
+              </Button>
+            </>
+          )}
+        </div>
       </section>
 
       {/* SECTION: NEWSLETTERS & SUBSCRIPTION (Centerpiece) */}
@@ -637,54 +609,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         </div>
       </section>
 
-      {/* Council Section */}
-      <section ref={councilRef} className="container mx-auto px-4 py-20 max-w-6xl">
-        <div className="text-center mb-12">
-          <Badge className="bg-cyan-100 text-cyan-800 border-0 mb-2">{t.leadershipBadge}</Badge>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.councilTitle}</h2>
-          <p className="text-slate-600 text-sm mt-1 max-w-lg mx-auto">
-            {t.councilSubtitle}
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {councilMembers.map((member, i) => (
-            <Card
-              key={i}
-              className="text-center bg-white/90 backdrop-blur shadow-md rounded-2xl hover:shadow-xl transition-all duration-300 border-slate-200/80 p-5 flex flex-col justify-between"
-            >
-              <div>
-                <Avatar className="mx-auto w-24 h-24 ring-4 ring-cyan-100 shadow-md">
-                  <AvatarImage src={member.image} alt={member.name} className="object-cover" />
-                  <AvatarFallback className="bg-cyan-600 text-white font-bold text-lg">
-                    {member.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <CardTitle className="mt-4 text-base font-bold text-slate-900">{member.name}</CardTitle>
-                <CardDescription className="text-xs text-cyan-700 font-semibold">{member.role}</CardDescription>
-                <p className="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">{member.bio}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Become a Member - Centerpiece CTA */}
-      <section className="container mx-auto px-4 py-20 flex flex-col items-center text-center max-w-3xl">
-        <div className="p-10 rounded-3xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-transparent border border-cyan-200/60 w-full space-y-6">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.ctaTitle}</h2>
-          <p className="text-slate-600 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-            {t.ctaBody}
-          </p>
-          <Button
-            onClick={() => setIsOpenForm(true)}
-            className="px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xl font-bold rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105"
-          >
-            {t.becomeMemberCta}
-          </Button>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t border-slate-200/80 bg-white py-12 px-4">
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
@@ -707,6 +631,7 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
       </footer>
 
       {/* Membership Application Modal */}
+      {acceptingMembers && (
       <Dialog open={isOpenForm} onOpenChange={setIsOpenForm}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -778,57 +703,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Article Detail Modal */}
-      {selectedArticle && (
-        <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <Badge className="bg-blue-100 text-blue-800 border-0">{selectedArticle.journal}</Badge>
-                <span>{new Date(selectedArticle.publication_date).toLocaleDateString(t.dateLocale)}</span>
-              </div>
-              <DialogTitle className="text-xl font-bold text-slate-900 leading-snug">
-                {selectedArticle.title}
-              </DialogTitle>
-              <DialogDescription className="text-xs font-semibold text-cyan-700">
-                {t.authorsLabel} {selectedArticle.authors}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{t.abstractLabel}</h4>
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{selectedArticle.abstract}</p>
-              </div>
-
-              {Array.isArray(selectedArticle.tags) && selectedArticle.tags.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">{t.keywordsLabel}</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedArticle.tags.map((tagItem: string, i: number) => (
-                      <Badge key={i} variant="secondary" className="text-xs bg-slate-100 text-slate-700">
-                        {tagItem}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedArticle.doi_or_url && (
-                <div className="pt-2 border-t border-slate-100 flex justify-end">
-                  <a
-                    href={selectedArticle.doi_or_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
-                  >
-                    {t.accessFullArticle} <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
-                  </a>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
       )}
 
       {/* Event Detail Modal */}
