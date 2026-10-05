@@ -60,7 +60,7 @@ export default function AdminPage() {
     instagram: "@ladint.oficial",
     linkedin: "linkedin.com/company/ladint",
     foundationYear: "2024",
-    acceptingMembers: false,
+    acceptingMembers: true,
   });
 
   // Modal form states

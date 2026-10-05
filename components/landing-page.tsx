@@ -43,7 +43,7 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
     contactEmail: "ladint.contato@academico.br",
     instagram: "@ladint.oficial",
     linkedin: "linkedin.com/company/ladint",
-    acceptingMembers: false,
+    acceptingMembers: true,
   });
 
   useEffect(() => {
@@ -51,17 +51,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   }, [t.htmlLang]);
 
   const heroRef = useRef<HTMLElement | null>(null);
-  const [showNav, setShowNav] = useState(false);
-
-  useEffect(() => {
-    const updateNav = () => {
-      setShowNav(window.scrollY > 8);
-    };
-
-    updateNav();
-    window.addEventListener("scroll", updateNav, { passive: true });
-    return () => window.removeEventListener("scroll", updateNav);
-  }, []);
 
   // Newsletter Subscription Form state
   const [subEmail, setSubEmail] = useState("");
@@ -190,33 +179,19 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#f7fbfe] to-[#edf6fc] text-slate-800">
-      {/* Soft mist dissolve as content nears the header (same feel as hero text fade) */}
-      <div
-        aria-hidden
-        className={`header-blur-veil pointer-events-none fixed inset-x-0 top-0 z-40 transition-opacity duration-500 ${
-          showNav ? "opacity-100" : "opacity-0"
-        }`}
-      />
+      {/* Soft mist behind fixed header */}
+      <div aria-hidden className="header-blur-veil pointer-events-none fixed inset-x-0 top-0 z-40" />
 
       {/* Top Navigation Bar */}
-      <nav
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-          showNav
-            ? "translate-y-0 opacity-100"
-            : "-translate-y-full opacity-0 pointer-events-none"
-        }`}
-      >
+      <nav className="fixed top-0 inset-x-0 z-50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div
-            className="flex items-center space-x-3 cursor-pointer"
+            className="flex items-center cursor-pointer"
             onClick={() => heroRef.current?.scrollIntoView({ behavior: "smooth" })}
           >
-            <img src="/logo.png" alt="LADINT Logo" className="w-10 h-10 object-contain drop-shadow" />
-            <div>
-              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
-                LADINT
-              </span>
-            </div>
+            <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
+              LADINT
+            </span>
           </div>
 
           <div className="hidden lg:flex items-center space-x-6 text-sm font-medium text-slate-600">
@@ -613,7 +588,7 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
       <footer className="border-t border-slate-200/80 bg-white py-12 px-4">
         <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center space-x-3">
-            <img src="/logo.png" alt="LADINT Logo" className="w-8 h-8 object-contain" />
+            <img src="/assests/logo.png" alt="LADINT Logo" className="w-8 h-8 object-contain" />
             <div>
               <p className="font-bold text-slate-800 text-sm">{t.defaultClubName}</p>
               <p className="text-xs text-slate-500">&copy; {new Date().getFullYear()} LADINT &bull; {t.footerRights}</p>
