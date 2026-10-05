@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -17,10 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Trophy,
-  Mail,
-  ExternalLink,
   ChevronRight,
-  CheckCircle2,
   Loader2,
   Award,
   Send,
@@ -30,12 +26,10 @@ import { getDictionary, type Locale, type DepartmentKey } from "@/lib/i18n";
 
 export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   const t = getDictionary(locale);
-  const [isOpenForm, setIsOpenForm] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   // Dynamic Data from Neon Postgres
   const [events, setEvents] = useState<any[]>([]);
-  const [newsletters, setNewsletters] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>({
     clubName: t.defaultClubName,
     clubAcronym: "LADINT",
@@ -56,16 +50,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   const [subEmail, setSubEmail] = useState("");
   const [subName, setSubName] = useState("");
   const [subLoading, setSubLoading] = useState(false);
-
-  // Membership Application Form state
-  const [appForm, setAppForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    course_semester: "",
-    motivation: "",
-  });
-  const [appLoading, setAppLoading] = useState(false);
   const [activeDept, setActiveDept] = useState<DepartmentKey>("advisory");
 
   // Section Refs for smooth scrolling
@@ -78,20 +62,17 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   useEffect(() => {
     async function loadData() {
       try {
-        const [evsRes, newsRes, settingsRes] = await Promise.all([
+        const [evsRes, settingsRes] = await Promise.all([
           fetch("/api/events"),
-          fetch("/api/newsletter"),
           fetch("/api/settings?key=general"),
         ]);
 
-        const [evsData, newsData, settingsData] = await Promise.all([
+        const [evsData, settingsData] = await Promise.all([
           evsRes.json(),
-          newsRes.json(),
           settingsRes.json(),
         ]);
 
         if (evsData.success && evsData.data) setEvents(evsData.data);
-        if (newsData.success && newsData.data) setNewsletters(newsData.data);
         if (settingsData.success && settingsData.data) {
           const data = settingsData.data;
           setSiteSettings({
@@ -135,46 +116,12 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
     }
   };
 
-  // Handle Membership Application Submit
-  const handleApplicationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAppLoading(true);
-    try {
-      const res = await fetch("/api/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(appForm),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-
-      toast.success(data.message);
-      setIsOpenForm(false);
-      setAppForm({
-        name: "",
-        email: "",
-        phone: "",
-        course_semester: "",
-        motivation: "",
-      });
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setAppLoading(false);
-    }
-  };
-
   const councilMembers = t.councilMembers;
   const acceptingMembers = !!siteSettings.acceptingMembers;
-  const activeDepartment = t.councilDepartments.find((d) => d.key === activeDept) ?? t.councilDepartments[0];
   const visibleMembers = councilMembers.filter((m) => m.departmentKey === activeDept);
 
   const scrollPastHero = () => {
     missionRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const scrollToNewsletter = () => {
-    newsletterRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -184,75 +131,47 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
 
       {/* Top Navigation Bar */}
       <nav className="fixed top-0 inset-x-0 z-50">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div
-            className="flex items-center cursor-pointer"
-            onClick={() => heroRef.current?.scrollIntoView({ behavior: "smooth" })}
-          >
-            <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
-              LADINT
-            </span>
-          </div>
-
-          <div className="hidden lg:flex items-center space-x-6 text-sm font-medium text-slate-600">
+        <div className="container mx-auto flex items-center justify-center px-4 py-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-medium text-slate-600 sm:gap-x-6">
             <button
               onClick={() => missionRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-cyan-600 transition"
+              className="hidden hover:text-cyan-600 transition lg:inline"
             >
-              {t.navMission}
+              {t.navAbout}
             </button>
-            <Link href={t.articlesPath} className="hover:text-cyan-600 transition">
+            <Link href={t.articlesPath} className="hidden hover:text-cyan-600 transition lg:inline">
               {t.navArticles}
             </Link>
             {events.length > 0 && (
               <button
                 onClick={() => eventsRef.current?.scrollIntoView({ behavior: "smooth" })}
-                className="hover:text-cyan-600 transition"
+                className="hidden hover:text-cyan-600 transition lg:inline"
               >
                 {t.navEvents}
               </button>
             )}
+
+            {acceptingMembers && (
+              <Button
+                asChild
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-md text-xs sm:text-sm font-semibold rounded-full px-4 sm:px-5 py-2 transition transform hover:scale-105"
+              >
+                <Link href={t.joinPath}>{t.becomeMember}</Link>
+              </Button>
+            )}
+
             <button
               onClick={() => newsletterRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-cyan-600 transition"
+              className="hidden hover:text-cyan-600 transition lg:inline"
             >
               {t.navNewsletter}
             </button>
             <button
               onClick={() => councilRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="hover:text-cyan-600 transition"
+              className="hidden hover:text-cyan-600 transition lg:inline"
             >
               {t.navCouncil}
             </button>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold">
-              <Link
-                href="/"
-                className={`px-2.5 py-1 rounded-full transition ${
-                  locale === "pt" ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {t.langPt}
-              </Link>
-              <Link
-                href="/en"
-                className={`px-2.5 py-1 rounded-full transition ${
-                  locale === "en" ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {t.langEn}
-              </Link>
-            </div>
-            {acceptingMembers && (
-              <Button
-                onClick={() => setIsOpenForm(true)}
-                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-md text-xs sm:text-sm font-semibold rounded-full px-4 sm:px-5 py-2 transition transform hover:scale-105"
-              >
-                {t.becomeMember}
-              </Button>
-            )}
           </div>
         </div>
       </nav>
@@ -288,14 +207,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
           </p>
 
           <div className="hero-enter-cta mt-8 flex flex-wrap items-center justify-center gap-3">
-            {acceptingMembers ? (
-              <Button
-                onClick={() => setIsOpenForm(true)}
-                className="px-8 py-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-base sm:text-lg font-bold rounded-full shadow-lg transition-transform duration-300 hover:scale-[1.03]"
-              >
-                {t.joinLeague}
-              </Button>
-            ) : null}
             <Button
               onClick={scrollPastHero}
               variant="outline"
@@ -429,10 +340,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
             ))}
           </div>
 
-          <div className="text-center mb-8 max-w-xl mx-auto">
-            <p className="text-sm text-slate-500 leading-relaxed">{activeDepartment.description}</p>
-          </div>
-
           <div className="flex flex-wrap justify-center gap-6">
             {visibleMembers.map((member) => (
               <Card
@@ -456,58 +363,23 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         </div>
       </section>
 
-      {/* Membership CTA */}
-      <section className="container mx-auto px-4 py-20 flex flex-col items-center text-center max-w-3xl">
-        <div className="p-10 rounded-3xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-transparent border border-cyan-200/60 w-full space-y-6">
-          {acceptingMembers ? (
-            <>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.ctaTitle}</h2>
-              <p className="text-slate-600 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-                {t.ctaBody}
-              </p>
-              <Button
-                onClick={() => setIsOpenForm(true)}
-                className="px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xl font-bold rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105"
-              >
-                {t.becomeMemberCta}
-              </Button>
-            </>
-          ) : (
-            <>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.ctaClosedTitle}</h2>
-              <p className="text-slate-600 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
-                {t.ctaClosedBody}
-              </p>
-              <Button
-                onClick={scrollToNewsletter}
-                className="px-12 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xl font-bold rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105"
-              >
-                {t.ctaClosedAction}
-              </Button>
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* SECTION: NEWSLETTERS & SUBSCRIPTION (Centerpiece) */}
+      {/* Newsletter subscription */}
       <section ref={newsletterRef} className="container mx-auto px-4 py-20 max-w-5xl">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-900 via-blue-900 to-slate-950 text-white p-8 md:p-14 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-900 via-blue-900 to-slate-950 text-white p-10 md:p-16 shadow-2xl min-h-[28rem] md:min-h-[32rem] flex items-center">
           <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 grid lg:grid-cols-2 gap-10 items-center">
-            {/* Left Column: Info & Subscription Form */}
-            <div className="space-y-6">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-400/20 text-cyan-300 text-xs font-semibold">
-                <Mail className="w-3.5 h-3.5" />
-                <span>{t.newsletterBadge}</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+          <div className="relative z-10 grid w-full lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
                 {t.newsletterTitle}
               </h2>
+            </div>
+
+            <div className="space-y-6">
               <p className="text-slate-300 text-sm md:text-base leading-relaxed">
                 {t.newsletterBody}
               </p>
 
-              <form onSubmit={handleSubscribe} className="space-y-3 pt-2">
+              <form onSubmit={handleSubscribe} className="space-y-3 pt-1">
                 <div className="grid sm:grid-cols-2 gap-3">
                   <Input
                     placeholder={t.namePlaceholder}
@@ -544,42 +416,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
                 </p>
               </form>
             </div>
-
-            {/* Right Column: Recent Issues */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-300">{t.recentIssues}</h3>
-              {newsletters.length === 0 ? (
-                <div className="p-6 bg-white/5 rounded-2xl border border-white/10 text-center text-slate-400 text-xs">
-                  {t.noIssues}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {newsletters.slice(0, 2).map((nl) => (
-                    <div
-                      key={nl.id}
-                      className="p-4 rounded-2xl bg-white/10 border border-white/15 hover:bg-white/15 transition backdrop-blur space-y-2"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <Badge className="bg-cyan-400/20 text-cyan-200 border-0">{nl.issue_number}</Badge>
-                        <span className="text-slate-400">{new Date(nl.published_at).toLocaleDateString(t.dateLocale)}</span>
-                      </div>
-                      <h4 className="font-bold text-white text-sm line-clamp-1">{nl.title}</h4>
-                      <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">{nl.summary}</p>
-                      {nl.pdf_url && (
-                        <a
-                          href={nl.pdf_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center text-xs text-cyan-300 hover:text-cyan-200 font-semibold pt-1"
-                        >
-                          {t.readIssue} <ExternalLink className="w-3 h-3 ml-1" />
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </section>
@@ -604,81 +440,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
           </div>
         </div>
       </footer>
-
-      {/* Membership Application Modal */}
-      {acceptingMembers && (
-      <Dialog open={isOpenForm} onOpenChange={setIsOpenForm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t.applyTitle}</DialogTitle>
-            <DialogDescription>
-              {t.applyDescription}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleApplicationSubmit} className="space-y-4 py-2">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-600">{t.fullName}</label>
-              <Input
-                required
-                placeholder={t.fullNamePlaceholder}
-                value={appForm.name}
-                onChange={(e) => setAppForm({ ...appForm, name: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-600">{t.emailLabel}</label>
-              <Input
-                type="email"
-                required
-                placeholder={t.emailExample}
-                value={appForm.email}
-                onChange={(e) => setAppForm({ ...appForm, email: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">{t.phoneLabel}</label>
-                <Input
-                  placeholder={t.phonePlaceholder}
-                  value={appForm.phone}
-                  onChange={(e) => setAppForm({ ...appForm, phone: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">{t.courseLabel}</label>
-                <Input
-                  placeholder={t.coursePlaceholder}
-                  value={appForm.course_semester}
-                  onChange={(e) => setAppForm({ ...appForm, course_semester: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-600">{t.motivationLabel}</label>
-              <Textarea
-                rows={3}
-                placeholder={t.motivationPlaceholder}
-                value={appForm.motivation}
-                onChange={(e) => setAppForm({ ...appForm, motivation: e.target.value })}
-              />
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsOpenForm(false)}>
-                {t.cancel}
-              </Button>
-              <Button type="submit" disabled={appLoading} className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold">
-                {appLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                {t.submitApplication}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-      )}
 
       {/* Event Detail Modal */}
       {selectedEvent && (
