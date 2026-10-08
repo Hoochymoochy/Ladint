@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +12,30 @@ import SiteFooter from "@/components/site-footer";
 export default function AboutPage({ locale = "pt" }: { locale?: Locale }) {
   const t = getDictionary(locale);
   const { about, mission, research, whatWeDo } = getAboutPageContent(locale);
+  const [joinFormUrl, setJoinFormUrl] = useState("");
+  const [acceptingMembers, setAcceptingMembers] = useState(false);
 
   useEffect(() => {
     document.documentElement.lang = t.htmlLang;
   }, [t.htmlLang]);
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await fetch("/api/settings?key=general");
+        const data = await res.json();
+        if (data.success && data.data) {
+          setAcceptingMembers(!!data.data.acceptingMembers);
+          setJoinFormUrl((data.data.joinFormUrl || "").trim());
+        }
+      } catch (err) {
+        console.error("Error loading about page settings:", err);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  const canJoin = acceptingMembers && !!joinFormUrl;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-[#f7fbfe] to-[#edf6fc] text-slate-800">
@@ -149,12 +169,16 @@ export default function AboutPage({ locale = "pt" }: { locale?: Locale }) {
               <p className="max-w-xl text-lg font-semibold leading-snug md:text-xl">
                 {about.paragraph2}
               </p>
-              <Button
-                asChild
-                className="rounded-full bg-cyan-500 px-8 py-3 font-bold text-slate-950 shadow-lg hover:bg-cyan-400"
-              >
-                <Link href={t.joinPath}>{t.becomeMemberCta}</Link>
-              </Button>
+              {canJoin && (
+                <Button
+                  asChild
+                  className="rounded-full bg-cyan-500 px-8 py-3 font-bold text-slate-950 shadow-lg hover:bg-cyan-400"
+                >
+                  <a href={joinFormUrl} target="_blank" rel="noopener noreferrer">
+                    {t.becomeMemberCta}
+                  </a>
+                </Button>
+              )}
             </div>
           </div>
         </section>

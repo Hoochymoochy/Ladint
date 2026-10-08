@@ -408,10 +408,13 @@ export const dictionaries = {
     ctaBody:
       "Seja você um estudante iniciante ou avançado, a LADINT oferece a plataforma ideal para desenvolver oratória, redação de memoriais, networking e publicação científica.",
     becomeMemberCta: "Torne-se um Membro",
+    openJoinForm: "Abrir formulário de inscrição",
     ctaClosedTitle: "Inscrições temporariamente fechadas",
     ctaClosedBody:
-      "Não estamos aceitando novos membros neste momento. Cadastre-se na newsletter para saber assim que as vagas reabrirem.",
-    ctaClosedAction: "Acompanhar pela Newsletter",
+      "Não estamos aceitando novos membros neste momento. Volte em breve para acompanhar a reabertura das vagas.",
+    ctaClosedAction: "Voltar ao início",
+    joinFormMissingBody:
+      "As inscrições estão abertas, mas o formulário ainda não foi configurado. Tente novamente em breve.",
     loadingPage: "Carregando...",
     footerRights: "Todos os direitos reservados.",
     contact: "Contato:",
@@ -529,10 +532,13 @@ export const dictionaries = {
     ctaBody:
       "Whether you are a beginning or advanced student, LADINT offers the ideal platform to develop oratory, memorial drafting, networking, and scientific publication.",
     becomeMemberCta: "Become a Member",
+    openJoinForm: "Open application form",
     ctaClosedTitle: "Applications temporarily closed",
     ctaClosedBody:
-      "We are not accepting new members right now. Sign up for the newsletter to stay up to date when we open again.",
-    ctaClosedAction: "Stay Updated via Newsletter",
+      "We are not accepting new members right now. Check back soon for when applications reopen.",
+    ctaClosedAction: "Back to home",
+    joinFormMissingBody:
+      "Applications are open, but the form has not been configured yet. Please try again soon.",
     loadingPage: "Loading...",
     footerRights: "All rights reserved.",
     contact: "Contact:",

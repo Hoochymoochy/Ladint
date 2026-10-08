@@ -14,14 +14,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Trophy,
   ChevronRight,
   Loader2,
-  Award,
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getDictionary, type Locale, type DepartmentKey } from "@/lib/i18n";
+import { NEWSLETTER_ENABLED } from "@/lib/features";
 import SiteFooter from "@/components/site-footer";
 
 export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
@@ -38,6 +37,7 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
     instagram: "@ladint.oficial",
     linkedin: "linkedin.com/company/ladint",
     acceptingMembers: false,
+    joinFormUrl: "",
   });
 
   useEffect(() => {
@@ -117,7 +117,8 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   };
 
   const councilMembers = t.councilMembers;
-  const acceptingMembers = !!siteSettings.acceptingMembers;
+  const joinFormUrl = (siteSettings.joinFormUrl || "").trim();
+  const acceptingMembers = !!siteSettings.acceptingMembers && !!joinFormUrl;
   const visibleMembers = councilMembers.filter((m) => m.departmentKey === activeDept);
 
   const scrollPastHero = () => {
@@ -145,7 +146,9 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
                 asChild
                 className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-md text-xs sm:text-sm font-semibold rounded-full px-4 sm:px-5 py-2 transition transform hover:scale-105"
               >
-                <Link href={t.joinPath}>{t.becomeMember}</Link>
+                <a href={joinFormUrl} target="_blank" rel="noopener noreferrer">
+                  {t.becomeMember}
+                </a>
               </Button>
             )}
 
@@ -281,12 +284,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
                   <CardHeader className="pb-2">
                     <span className="text-xs font-semibold text-cyan-600">{ev.location}</span>
                     <CardTitle className="text-lg font-bold text-slate-900 leading-snug">{ev.title}</CardTitle>
-                    {ev.achievements && (
-                      <div className="mt-2 inline-flex items-center space-x-1.5 px-3 py-1 bg-amber-50 border border-amber-200/80 text-amber-900 rounded-lg text-xs font-semibold">
-                        <Award className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span className="truncate">{ev.achievements}</span>
-                      </div>
-                    )}
                   </CardHeader>
                   <CardContent>
                     <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed">{ev.description}</p>
@@ -367,62 +364,64 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         </div>
       </section>
 
-      {/* Newsletter subscription */}
-      <section ref={newsletterRef} className="container mx-auto px-4 py-20 max-w-5xl">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-900 via-blue-900 to-slate-950 text-white p-10 md:p-16 shadow-2xl min-h-[28rem] md:min-h-[32rem] flex items-center">
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 grid w-full lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            <div>
-              <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
-                {t.newsletterTitle}
-              </h2>
-            </div>
+      {/* Newsletter subscription — gated until NEWSLETTER_ENABLED */}
+      {NEWSLETTER_ENABLED && (
+        <section ref={newsletterRef} className="container mx-auto px-4 py-20 max-w-5xl">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-900 via-blue-900 to-slate-950 text-white p-10 md:p-16 shadow-2xl min-h-[28rem] md:min-h-[32rem] flex items-center">
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 grid w-full lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+              <div>
+                <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
+                  {t.newsletterTitle}
+                </h2>
+              </div>
 
-            <div className="space-y-6">
-              <p className="text-slate-300 text-sm md:text-base leading-relaxed">
-                {t.newsletterBody}
-              </p>
-
-              <form onSubmit={handleSubscribe} className="space-y-3 pt-1">
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Input
-                    placeholder={t.namePlaceholder}
-                    value={subName}
-                    onChange={(e) => setSubName(e.target.value)}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:bg-white/20 text-sm"
-                  />
-                  <Input
-                    type="email"
-                    required
-                    placeholder={t.emailPlaceholder}
-                    value={subEmail}
-                    onChange={(e) => setSubEmail(e.target.value)}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:bg-white/20 text-sm"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={subLoading}
-                  className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-xl shadow-lg transition duration-200"
-                >
-                  {subLoading ? (
-                    <span className="flex items-center justify-center">
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t.subscribing}
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center">
-                      <Send className="w-4 h-4 mr-2" /> {t.subscribeFree}
-                    </span>
-                  )}
-                </Button>
-                <p className="text-[11px] text-slate-400 text-center">
-                  {t.privacyNote}
+              <div className="space-y-6">
+                <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                  {t.newsletterBody}
                 </p>
-              </form>
+
+                <form onSubmit={handleSubscribe} className="space-y-3 pt-1">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <Input
+                      placeholder={t.namePlaceholder}
+                      value={subName}
+                      onChange={(e) => setSubName(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:bg-white/20 text-sm"
+                    />
+                    <Input
+                      type="email"
+                      required
+                      placeholder={t.emailPlaceholder}
+                      value={subEmail}
+                      onChange={(e) => setSubEmail(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:bg-white/20 text-sm"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={subLoading}
+                    className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-xl shadow-lg transition duration-200"
+                  >
+                    {subLoading ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t.subscribing}
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center">
+                        <Send className="w-4 h-4 mr-2" /> {t.subscribeFree}
+                      </span>
+                    )}
+                  </Button>
+                  <p className="text-[11px] text-slate-400 text-center">
+                    {t.privacyNote}
+                  </p>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <SiteFooter
         locale={locale}
@@ -433,36 +432,29 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
       {/* Event Detail Modal */}
       {selectedEvent && (
         <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto border-slate-700 bg-gradient-to-br from-cyan-900 via-blue-900 to-slate-950 text-white">
             {selectedEvent.image_url && (
-              <div className="h-56 w-full -mt-6 -mx-6 mb-4 overflow-hidden rounded-t-lg bg-slate-100">
+              <div className="h-56 w-full -mt-6 -mx-6 mb-4 overflow-hidden rounded-t-lg bg-slate-800">
                 <img src={selectedEvent.image_url} alt={selectedEvent.title} className="w-full h-full object-cover" />
               </div>
             )}
             <DialogHeader>
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <span className="font-semibold text-cyan-700">{selectedEvent.location}</span>
+              <div className="mb-1 flex items-center justify-between text-xs text-slate-300">
+                <span className="font-semibold text-cyan-300">{selectedEvent.location}</span>
                 <span>{new Date(selectedEvent.event_date).toLocaleDateString(t.dateLocale)}</span>
               </div>
-              <DialogTitle className="text-xl font-bold text-slate-900 leading-snug">
+              <DialogTitle className="text-xl font-bold leading-snug text-white">
                 {selectedEvent.title}
               </DialogTitle>
-              <DialogDescription className="text-xs font-medium text-slate-600">
+              <DialogDescription className="text-xs font-medium text-slate-300">
                 {selectedEvent.event_name}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
-              {selectedEvent.achievements && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center space-x-2 text-amber-900 text-xs font-semibold">
-                  <Trophy className="w-5 h-5 text-amber-600 shrink-0" />
-                  <span>{t.awardLabel} {selectedEvent.achievements}</span>
-                </div>
-              )}
-
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{t.aboutActuation}</h4>
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{selectedEvent.description}</p>
+                <h4 className="mb-1 text-xs font-bold uppercase tracking-wider text-cyan-200/80">{t.aboutActuation}</h4>
+                <p className="text-sm leading-relaxed whitespace-pre-line text-white/90">{selectedEvent.description}</p>
               </div>
             </div>
           </DialogContent>

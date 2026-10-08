@@ -41,9 +41,12 @@ import {
   Trophy,
   Loader2,
   Edit,
+  LogOut,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getAdminDictionary } from "@/lib/admin-i18n";
+import { NEWSLETTER_ENABLED } from "@/lib/features";
 import type { Locale } from "@/lib/i18n";
 
 const adminDialogShell =
@@ -57,12 +60,12 @@ const adminDialogSubmit = "bg-cyan-500 text-slate-950 hover:bg-cyan-400";
 
 export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
   const t = getAdminDictionary(locale);
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [newsletters, setNewsletters] = useState<any[]>([]);
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [articles, setArticles] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
-  const [applications, setApplications] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>({
     clubName: t.defaultClubName,
     clubAcronym: "LADINT",
@@ -72,7 +75,9 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
     linkedin: "linkedin.com/company/ladint",
     foundationYear: "2024",
     acceptingMembers: false,
+    joinFormUrl: "",
   });
+  const [savingJoinSettings, setSavingJoinSettings] = useState(false);
 
   // Modal form states
   const [newNewsletterOpen, setNewNewsletterOpen] = useState(false);
@@ -113,12 +118,9 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
     location: "",
     event_date: new Date().toISOString().split("T")[0],
     description: "",
-    achievements: "",
     image_url: "",
   });
   const [uploadingEventImage, setUploadingEventImage] = useState(false);
-
-  const [selectedApplication, setSelectedApplication] = useState<any>(null);
 
   const uploadFile = async (file: File, kind: "image" | "pdf") => {
     const body = new FormData();
@@ -134,21 +136,19 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [newsRes, subsRes, artsRes, evsRes, appsRes, settingsRes] = await Promise.all([
-        fetch("/api/newsletter"),
-        fetch("/api/newsletter/subscribers"),
+      const [newsRes, subsRes, artsRes, evsRes, settingsRes] = await Promise.all([
+        NEWSLETTER_ENABLED ? fetch("/api/newsletter") : Promise.resolve(null),
+        NEWSLETTER_ENABLED ? fetch("/api/newsletter/subscribers") : Promise.resolve(null),
         fetch("/api/articles"),
         fetch("/api/events"),
-        fetch("/api/apply"),
         fetch("/api/settings?key=general"),
       ]);
 
-      const [newsData, subsData, artsData, evsData, appsData, settingsData] = await Promise.all([
-        newsRes.json(),
-        subsRes.json(),
+      const [newsData, subsData, artsData, evsData, settingsData] = await Promise.all([
+        newsRes ? newsRes.json() : Promise.resolve({ success: false }),
+        subsRes ? subsRes.json() : Promise.resolve({ success: false }),
         artsRes.json(),
         evsRes.json(),
-        appsRes.json(),
         settingsRes.json(),
       ]);
 
@@ -156,9 +156,12 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
       if (subsData.success) setSubscribers(subsData.data || []);
       if (artsData.success) setArticles(artsData.data || []);
       if (evsData.success) setEvents(evsData.data || []);
-      if (appsData.success) setApplications(appsData.data || []);
       if (settingsData.success && settingsData.data) {
-        setSiteSettings(settingsData.data);
+        setSiteSettings({
+          acceptingMembers: false,
+          joinFormUrl: "",
+          ...settingsData.data,
+        });
       }
     } catch (err: any) {
       toast.error(t.loadError + err.message);
@@ -380,7 +383,6 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
         location: "",
         event_date: new Date().toISOString().split("T")[0],
         description: "",
-        achievements: "",
         image_url: "",
       });
       fetchData();
@@ -397,7 +399,6 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
       location: ev.location,
       event_date: new Date(ev.event_date).toISOString().split("T")[0],
       description: ev.description,
-      achievements: ev.achievements || "",
       image_url: ev.image_url || "",
     });
     setEventDialogOpen(true);
@@ -416,9 +417,8 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
     }
   };
 
-  const handleToggleAcceptingMembers = async (checked: boolean) => {
-    const next = { ...siteSettings, acceptingMembers: checked };
-    setSiteSettings(next);
+  const saveJoinSettings = async (next: typeof siteSettings) => {
+    setSavingJoinSettings(true);
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
@@ -427,30 +427,59 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      toast.success(t.settingsSaved);
+      setSiteSettings(next);
+      toast.success(t.joinFormSaved);
     } catch (err: any) {
-      setSiteSettings({ ...siteSettings, acceptingMembers: !checked });
       toast.error(err.message);
+      throw err;
+    } finally {
+      setSavingJoinSettings(false);
     }
   };
 
-  // --- Application Delete Handler ---
-  const handleDeleteApplication = async (id: number) => {
-    if (!confirm(t.confirmRemoveApplication)) return;
+  const handleToggleAcceptingMembers = async (checked: boolean) => {
+    const url = (siteSettings.joinFormUrl || "").trim();
+    if (checked && !url) {
+      toast.error(t.joinFormUrlRequired);
+      return;
+    }
+    const prev = siteSettings;
+    const next = { ...siteSettings, acceptingMembers: checked };
+    setSiteSettings(next);
     try {
-      const res = await fetch(`/api/apply?id=${id}`, { method: "DELETE" });
+      await saveJoinSettings(next);
+    } catch {
+      setSiteSettings(prev);
+    }
+  };
+
+  const handleSaveJoinFormUrl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const url = (siteSettings.joinFormUrl || "").trim();
+    const next = {
+      ...siteSettings,
+      joinFormUrl: url,
+      acceptingMembers: url ? !!siteSettings.acceptingMembers : false,
+    };
+    await saveJoinSettings(next);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      toast.success(t.applicationRemoved);
-      fetchData();
+      toast.success(t.logoutSuccess);
+      router.replace(locale === "en" ? "/en/admin/login" : "/admin/login");
+      router.refresh();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || t.logoutFailed);
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 pb-16">
-      <Tabs defaultValue="newsletters" className="space-y-0">
+      <Tabs defaultValue={NEWSLETTER_ENABLED ? "newsletters" : "articles"} className="space-y-0">
         <header className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/80 backdrop-blur-md">
           <div className="relative w-full px-4 py-3">
             <Link
@@ -461,6 +490,15 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
               {t.backToSite}
             </Link>
 
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="absolute right-4 top-3.5 z-10 flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-red-600 md:right-6 lg:right-8"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              {t.logout}
+            </button>
+
             <div className="mx-auto flex max-w-7xl flex-col items-center gap-3">
               <Link
                 href={t.homePath}
@@ -469,14 +507,20 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
                 LADINT
               </Link>
 
-              <TabsList className="grid h-auto w-full max-w-3xl grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 md:grid-cols-4">
-                <TabsTrigger
-                  value="newsletters"
-                  className="px-3 py-2 text-xs data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm sm:text-sm"
-                >
-                  <Mail className="mr-1.5 h-4 w-4" />
-                  {t.tabNewsletters}
-                </TabsTrigger>
+              <TabsList
+                className={`grid h-auto w-full max-w-3xl gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 grid-cols-2 ${
+                  NEWSLETTER_ENABLED ? "md:grid-cols-4" : "md:grid-cols-3"
+                }`}
+              >
+                {NEWSLETTER_ENABLED && (
+                  <TabsTrigger
+                    value="newsletters"
+                    className="px-3 py-2 text-xs data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm sm:text-sm"
+                  >
+                    <Mail className="mr-1.5 h-4 w-4" />
+                    {t.tabNewsletters}
+                  </TabsTrigger>
+                )}
                 <TabsTrigger
                   value="articles"
                   className="px-3 py-2 text-xs data-[state=active]:bg-white data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm sm:text-sm"
@@ -505,6 +549,7 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
 
         <main className="container mx-auto max-w-7xl px-4 py-8">
           {/* TAB: NEWSLETTERS & SUBSCRIBERS */}
+          {NEWSLETTER_ENABLED && (
           <TabsContent value="newsletters" className="mt-0 space-y-6">
             <Card className="bg-white border-slate-200 shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
@@ -680,7 +725,7 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
                   </CardDescription>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" onClick={exportSubscribersCSV} className="text-slate-700 border-slate-300">
+                  <Button variant="outline" size="sm" onClick={exportSubscribersCSV} className="border-slate-300 text-white">
                     <Download className="w-4 h-4 mr-1.5" />
                     {t.exportCsv}
                   </Button>
@@ -783,6 +828,7 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           {/* TAB: SCIENTIFIC ARTICLES */}
           <TabsContent value="articles" className="mt-0 space-y-6">
@@ -1090,7 +1136,6 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
                           location: "",
                           event_date: new Date().toISOString().split("T")[0],
                           description: "",
-                          achievements: "",
                           image_url: "",
                         });
                       }}
@@ -1199,16 +1244,6 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
                       </div>
 
                       <div className="space-y-1">
-                        <label className={adminDialogLabel}>{t.achievements}</label>
-                        <Input
-                          placeholder={t.achievementsPlaceholder}
-                          value={eventForm.achievements}
-                          onChange={(e) => setEventForm({ ...eventForm, achievements: e.target.value })}
-                          className={adminDialogField}
-                        />
-                      </div>
-
-                      <div className="space-y-1">
                         <label className={adminDialogLabel}>{t.eventDescription}</label>
                         <Textarea
                           required
@@ -1259,11 +1294,6 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
                               <span>{ev.location}</span>
                             </div>
                             <CardTitle className="text-lg font-bold text-slate-900 leading-snug">{ev.title}</CardTitle>
-                            {ev.achievements && (
-                              <Badge className="bg-amber-100 text-amber-900 border-amber-200 mt-2 font-medium">
-                                🏆 {ev.achievements}
-                              </Badge>
-                            )}
                           </CardHeader>
                           <CardContent>
                             <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{ev.description}</p>
@@ -1297,139 +1327,94 @@ export default function AdminPage({ locale = "pt" }: { locale?: Locale }) {
             </Card>
           </TabsContent>
 
-          {/* TAB: APPLICATIONS */}
+          {/* TAB: MEMBERSHIP / GOOGLE FORM */}
           <TabsContent value="applications" className="mt-0 space-y-6">
-            <Card className="bg-white border-slate-200 shadow-sm">
-              <CardContent className="flex items-center justify-between p-5">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{t.statApplications}</p>
-                  <h3 className="mt-1 text-3xl font-extrabold text-emerald-700">{applications.length}</h3>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                  <Users className="h-6 w-6" />
-                </div>
-              </CardContent>
-            </Card>
-
             <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
-              <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-bold text-slate-900">{t.applicationsTitle}</h2>
-                  <Badge
-                    className={`border-0 text-xs font-semibold ${
-                      siteSettings.acceptingMembers
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {siteSettings.acceptingMembers ? t.applicationsOpen : t.applicationsClosed}
-                  </Badge>
+              <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-xl text-slate-800">{t.applicationsTitle}</CardTitle>
+                    <Badge
+                      className={`border-0 text-xs font-semibold ${
+                        siteSettings.acceptingMembers && siteSettings.joinFormUrl
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {siteSettings.acceptingMembers && siteSettings.joinFormUrl
+                        ? t.applicationsOpen
+                        : t.applicationsClosed}
+                    </Badge>
+                  </div>
+                  <CardDescription className="mt-1">{t.applicationsDesc}</CardDescription>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-800">{t.acceptingMembers}</p>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">{t.acceptingMembers}</p>
+                    <p className="text-xs text-slate-500">{t.acceptingMembersHelp}</p>
+                  </div>
                   <Switch
                     checked={!!siteSettings.acceptingMembers}
                     onCheckedChange={handleToggleAcceptingMembers}
                     className="data-[state=checked]:bg-cyan-600 data-[state=unchecked]:bg-slate-300"
                   />
                 </div>
-              </div>
+              </CardHeader>
 
-              <CardContent className="p-0">
-                {applications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-                    <Users className="h-10 w-10 text-slate-300" />
-                    <p className="text-sm text-slate-500">{t.noApplications}</p>
+              <CardContent>
+                <form onSubmit={handleSaveJoinFormUrl} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      {t.joinFormUrl}
+                    </label>
+                    <Input
+                      type="url"
+                      placeholder={t.joinFormUrlPlaceholder}
+                      value={siteSettings.joinFormUrl || ""}
+                      onChange={(e) =>
+                        setSiteSettings({ ...siteSettings, joinFormUrl: e.target.value })
+                      }
+                      className="border-slate-200 bg-white text-slate-900"
+                    />
+                    <p className="text-xs text-slate-500">{t.joinFormUrlHelp}</p>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-slate-100 hover:bg-transparent">
-                          <TableHead className="pl-6">{t.name}</TableHead>
-                          <TableHead>{t.email}</TableHead>
-                          <TableHead>{t.phone}</TableHead>
-                          <TableHead>{t.courseSemester}</TableHead>
-                          <TableHead>{t.motivation}</TableHead>
-                          <TableHead>{t.date}</TableHead>
-                          <TableHead className="pr-6 text-right">{t.actions}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {applications.map((app) => (
-                          <TableRow key={app.id} className="border-slate-100">
-                            <TableCell className="pl-6 font-semibold text-slate-900">{app.name}</TableCell>
-                            <TableCell className="text-slate-700">{app.email}</TableCell>
-                            <TableCell className="whitespace-nowrap text-slate-600">
-                              {app.phone || "—"}
-                            </TableCell>
-                            <TableCell className="text-slate-600">
-                              {app.course_semester || t.defaultCourse}
-                            </TableCell>
-                            <TableCell className="max-w-[14rem] text-slate-600">
-                              {app.motivation ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedApplication(app)}
-                                  className="block w-full truncate text-left text-cyan-700 hover:underline"
-                                >
-                                  {app.motivation}
-                                </button>
-                              ) : (
-                                <span className="text-slate-400">{t.noNotes}</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap text-xs text-slate-500">
-                              {new Date(app.created_at).toLocaleDateString(t.dateLocale)}
-                            </TableCell>
-                            <TableCell className="pr-6 text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteApplication(app.id)}
-                                className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      type="submit"
+                      disabled={savingJoinSettings}
+                      className="bg-cyan-600 text-white hover:bg-cyan-700"
+                    >
+                      {savingJoinSettings ? (
+                        <span className="flex items-center">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t.saveSettings}
+                        </span>
+                      ) : (
+                        t.saveSettings
+                      )}
+                    </Button>
+
+                    {!!siteSettings.joinFormUrl && (
+                      <Button asChild type="button" variant="outline" className="border-slate-300">
+                        <a
+                          href={siteSettings.joinFormUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="mr-1.5 h-4 w-4" />
+                          {t.openFormPreview}
+                        </a>
+                      </Button>
+                    )}
                   </div>
-                )}
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
         </main>
       </Tabs>
-
-      <Dialog open={!!selectedApplication} onOpenChange={(open) => !open && setSelectedApplication(null)}>
-        <DialogContent className={`max-w-lg max-h-[85vh] overflow-y-auto ${adminDialogShell}`}>
-          <DialogHeader>
-            <DialogTitle className="text-white">{t.motivationModalTitle}</DialogTitle>
-            <DialogDescription className="text-slate-300">
-              {selectedApplication
-                ? `${t.motivationFrom} ${selectedApplication.name}`
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white py-2">
-            {selectedApplication?.motivation}
-          </p>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSelectedApplication(null)}
-              className={adminDialogCancel}
-            >
-              {t.close}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
