@@ -12,8 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { BookOpen, ExternalLink, ArrowLeft } from "lucide-react";
+import { BookOpen, ExternalLink, ArrowLeft, FileText } from "lucide-react";
 import { getDictionary, type Locale } from "@/lib/i18n";
+import SiteFooter from "@/components/site-footer";
 
 export default function ArticlesPage({ locale = "pt" }: { locale?: Locale }) {
   const t = getDictionary(locale);
@@ -38,7 +39,7 @@ export default function ArticlesPage({ locale = "pt" }: { locale?: Locale }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-[#f7fbfe] to-[#edf6fc] text-slate-800">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-white via-[#f7fbfe] to-[#edf6fc] text-slate-800">
       <nav className="sticky top-0 z-40 border-b border-slate-200/60 bg-white/80 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <Link href={t.homePath} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-cyan-700">
@@ -46,35 +47,18 @@ export default function ArticlesPage({ locale = "pt" }: { locale?: Locale }) {
             {t.backHome}
           </Link>
 
-          <Link href={t.homePath} className="flex items-center gap-2">
-            <img src="/logo.png" alt="LADINT" className="h-8 w-8 object-contain" />
-            <span className="bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-lg font-extrabold tracking-tight text-transparent">
-              LADINT
-            </span>
+          <Link
+            href={t.homePath}
+            className="bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-lg font-extrabold tracking-tight text-transparent"
+          >
+            LADINT
           </Link>
 
-          <div className="flex items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 text-xs font-bold">
-            <Link
-              href="/artigos"
-              className={`rounded-full px-2.5 py-1 transition ${
-                locale === "pt" ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {t.langPt}
-            </Link>
-            <Link
-              href="/en/articles"
-              className={`rounded-full px-2.5 py-1 transition ${
-                locale === "en" ? "bg-white text-cyan-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {t.langEn}
-            </Link>
-          </div>
+          <div className="w-[5.5rem]" aria-hidden />
         </div>
       </nav>
 
-      <main className="container mx-auto max-w-6xl px-4 py-14">
+      <main className="container mx-auto w-full max-w-6xl flex-1 px-4 py-14">
         <div className="mb-10 max-w-2xl">
           <Badge className="mb-2 border-0 bg-blue-100 text-blue-800">{t.academicBadge}</Badge>
           <h1 className="text-3xl font-extrabold text-slate-900 md:text-4xl">{t.articlesTitle}</h1>
@@ -119,7 +103,7 @@ export default function ArticlesPage({ locale = "pt" }: { locale?: Locale }) {
                   </CardContent>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-slate-100 p-5 pt-0">
+                <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 p-5 pt-0">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -128,22 +112,36 @@ export default function ArticlesPage({ locale = "pt" }: { locale?: Locale }) {
                   >
                     {t.readAbstract}
                   </Button>
-                  {art.doi_or_url && (
-                    <a
-                      href={art.doi_or_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center text-xs font-semibold text-slate-700 transition hover:text-cyan-600"
-                    >
-                      {t.access} <ExternalLink className="ml-1 h-3.5 w-3.5" />
-                    </a>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {art.pdf_url && (
+                      <a
+                        href={art.pdf_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center text-xs font-semibold text-cyan-700 transition hover:text-cyan-600"
+                      >
+                        {t.openPdf} <FileText className="ml-1 h-3.5 w-3.5" />
+                      </a>
+                    )}
+                    {art.doi_or_url && (
+                      <a
+                        href={art.doi_or_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center text-xs font-semibold text-slate-700 transition hover:text-cyan-600"
+                      >
+                        {t.access} <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))}
           </div>
         )}
       </main>
+
+      <SiteFooter locale={locale} />
 
       {selectedArticle && (
         <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
@@ -179,16 +177,28 @@ export default function ArticlesPage({ locale = "pt" }: { locale?: Locale }) {
                 </div>
               )}
 
-              {selectedArticle.doi_or_url && (
-                <div className="flex justify-end border-t border-slate-100 pt-2">
-                  <a
-                    href={selectedArticle.doi_or_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-700"
-                  >
-                    {t.accessFullArticle} <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                  </a>
+              {(selectedArticle.pdf_url || selectedArticle.doi_or_url) && (
+                <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-2">
+                  {selectedArticle.pdf_url && (
+                    <a
+                      href={selectedArticle.pdf_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-700"
+                    >
+                      {t.openPdf} <FileText className="ml-1.5 h-3.5 w-3.5" />
+                    </a>
+                  )}
+                  {selectedArticle.doi_or_url && (
+                    <a
+                      href={selectedArticle.doi_or_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-cyan-300 hover:text-cyan-700"
+                    >
+                      {t.accessFullArticle} <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                    </a>
+                  )}
                 </div>
               )}
             </div>

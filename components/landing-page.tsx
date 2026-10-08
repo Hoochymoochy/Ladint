@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getDictionary, type Locale, type DepartmentKey } from "@/lib/i18n";
+import SiteFooter from "@/components/site-footer";
 
 export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
   const t = getDictionary(locale);
@@ -37,7 +37,7 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
     contactEmail: "ladint.contato@academico.br",
     instagram: "@ladint.oficial",
     linkedin: "linkedin.com/company/ladint",
-    acceptingMembers: true,
+    acceptingMembers: false,
   });
 
   useEffect(() => {
@@ -133,23 +133,12 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
       <nav className="fixed top-0 inset-x-0 z-50">
         <div className="container mx-auto flex items-center justify-center px-4 py-3">
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-medium text-slate-600 sm:gap-x-6">
-            <button
-              onClick={() => missionRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="hidden hover:text-cyan-600 transition lg:inline"
-            >
+            <Link href={t.aboutPath} className="hidden hover:text-cyan-600 transition lg:inline">
               {t.navAbout}
-            </button>
+            </Link>
             <Link href={t.articlesPath} className="hidden hover:text-cyan-600 transition lg:inline">
               {t.navArticles}
             </Link>
-            {events.length > 0 && (
-              <button
-                onClick={() => eventsRef.current?.scrollIntoView({ behavior: "smooth" })}
-                className="hidden hover:text-cyan-600 transition lg:inline"
-              >
-                {t.navEvents}
-              </button>
-            )}
 
             {acceptingMembers && (
               <Button
@@ -160,12 +149,14 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
               </Button>
             )}
 
-            <button
-              onClick={() => newsletterRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="hidden hover:text-cyan-600 transition lg:inline"
-            >
-              {t.navNewsletter}
-            </button>
+            {events.length > 0 && (
+              <button
+                onClick={() => eventsRef.current?.scrollIntoView({ behavior: "smooth" })}
+                className="hidden hover:text-cyan-600 transition lg:inline"
+              >
+                {t.navEvents}
+              </button>
+            )}
             <button
               onClick={() => councilRef.current?.scrollIntoView({ behavior: "smooth" })}
               className="hidden hover:text-cyan-600 transition lg:inline"
@@ -218,17 +209,31 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         </div>
       </section>
 
-      {/* Mission + logo */}
-      <section ref={missionRef} className="container mx-auto max-w-6xl scroll-mt-20 px-4 py-20">
+      {/* About — high overview of the club */}
+      <section
+        id="sobre"
+        ref={missionRef}
+        className="container mx-auto max-w-6xl scroll-mt-24 px-4 py-20"
+      >
         <div className="grid items-center gap-10 md:grid-cols-2 md:gap-14">
           <div className="space-y-5 text-left">
-            <Badge className="bg-cyan-100 text-cyan-800 border-0">{t.foundationsBadge}</Badge>
+            <p className="text-slate-600 text-base sm:text-lg md:text-xl leading-relaxed">
+              {t.foundationsBadge}
+            </p>
             <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
               {t.ourMission}
             </h2>
             <div className="space-y-4 text-base leading-relaxed text-slate-600 md:text-lg">
               <p>{t.missionP1}</p>
               <p>{t.missionP2}</p>
+            </div>
+            <div className="pt-2">
+              <Button
+                asChild
+                className="rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:from-cyan-600 hover:to-blue-700"
+              >
+                <Link href={t.aboutPath}>{t.aboutMoreCta}</Link>
+              </Button>
             </div>
           </div>
 
@@ -246,7 +251,6 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         <section ref={eventsRef} className="container mx-auto px-4 py-16 max-w-6xl">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
             <div>
-              <Badge className="bg-amber-100 text-amber-900 border-0 mb-2">{t.representBadge}</Badge>
               <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">{t.eventsTitle}</h2>
               <p className="text-slate-600 text-sm mt-1 max-w-xl">
                 {t.eventsSubtitle}
@@ -420,26 +424,11 @@ export default function LandingPage({ locale = "pt" }: { locale?: Locale }) {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white py-12 px-4">
-        <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center space-x-3">
-            <img src="/assests/logo.png" alt="LADINT Logo" className="w-8 h-8 object-contain" />
-            <div>
-              <p className="font-bold text-slate-800 text-sm">{t.defaultClubName}</p>
-              <p className="text-xs text-slate-500">&copy; {new Date().getFullYear()} LADINT &bull; {t.footerRights}</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-6 text-xs text-slate-500">
-            <span>{t.contact} {siteSettings.contactEmail || "ladint.contato@academico.br"}</span>
-            <span>Instagram: {siteSettings.instagram || "@ladint.oficial"}</span>
-            <Link href="/admin" className="text-cyan-600 hover:underline font-semibold">
-              {t.adminControl}
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter
+        locale={locale}
+        contactEmail={siteSettings.contactEmail || "ladint.contato@academico.br"}
+        instagram={siteSettings.instagram || "@ladint.oficial"}
+      />
 
       {/* Event Detail Modal */}
       {selectedEvent && (

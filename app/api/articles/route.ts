@@ -4,7 +4,7 @@ import { sql } from "@/lib/db";
 export async function GET() {
   try {
     const articles = await sql`
-      SELECT id, title, authors, journal, publication_date, abstract, doi_or_url, tags, created_at
+      SELECT id, title, authors, journal, publication_date, abstract, doi_or_url, tags, pdf_url, created_at
       FROM scientific_articles
       ORDER BY publication_date DESC, id DESC;
     `;
@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, authors, journal, publication_date, abstract, doi_or_url, tags } = body;
+    const { title, authors, journal, publication_date, abstract, doi_or_url, tags, pdf_url } = body;
 
     if (!title || !authors || !journal || !publication_date || !abstract) {
       return NextResponse.json(
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       : [];
 
     const inserted = await sql`
-      INSERT INTO scientific_articles (title, authors, journal, publication_date, abstract, doi_or_url, tags)
+      INSERT INTO scientific_articles (title, authors, journal, publication_date, abstract, doi_or_url, tags, pdf_url)
       VALUES (
         ${title},
         ${authors},
@@ -42,7 +42,8 @@ export async function POST(request: Request) {
         ${publication_date},
         ${abstract},
         ${doi_or_url || ""},
-        ${tagsArray}
+        ${tagsArray},
+        ${pdf_url || ""}
       )
       RETURNING *;
     `;

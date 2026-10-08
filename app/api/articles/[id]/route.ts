@@ -8,7 +8,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, authors, journal, publication_date, abstract, doi_or_url, tags } = body;
+    const { title, authors, journal, publication_date, abstract, doi_or_url, tags, pdf_url } = body;
 
     const tagsArray = Array.isArray(tags)
       ? tags
@@ -25,7 +25,8 @@ export async function PUT(
         publication_date = COALESCE(${publication_date}, publication_date),
         abstract = COALESCE(${abstract}, abstract),
         doi_or_url = COALESCE(${doi_or_url}, doi_or_url),
-        tags = ${tagsArray}
+        tags = ${tagsArray},
+        pdf_url = COALESCE(${pdf_url}, pdf_url)
       WHERE id = ${Number(id)}
       RETURNING *;
     `;

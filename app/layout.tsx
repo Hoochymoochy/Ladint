@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { site } from "@/lib/content"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,11 +11,11 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Liga Acadêmica de Direito Internacional",
+  title: site.title,
+  description: site.description,
   icons: {
-    icon: "/logo.png", // or "/icon.png"
+    icon: "/assests/logo.png",
   },
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
